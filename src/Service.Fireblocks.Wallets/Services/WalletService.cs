@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MyJetWallet.Fireblocks.Domain.Models.Addresses;
 using MyNoSqlServer.Abstractions;
 using Service.Fireblocks.Api.Grpc;
 using Service.Fireblocks.Wallets.Grpc;
@@ -54,19 +55,7 @@ namespace Service.Fireblocks.Wallets.Services
                                 VaultAccountId = asset.AssetMapping.ActiveDepositAddessVaultAccountId
                             });
 
-                            addressEntity = new UserAddressEntity()
-                            {
-                                Address = vaultAddress.VaultAddress.Address,
-                                AssetId = asset.AssetMapping.AssetId,
-                                FireblocksAssetId = asset.AssetMapping.FireblocksAssetId,
-                                UserId = request.UserId,
-                                FireblocksVaultAccountId = asset.AssetMapping.ActiveDepositAddessVaultAccountId,
-                                NetworkId = asset.AssetMapping.NetworkId,
-                                Tag = vaultAddress.VaultAddress.Tag,
-                                LegacyAddress = vaultAddress.VaultAddress.LegacyAddress,
-                                Bip44AddressIndex = vaultAddress.VaultAddress.Bip44AddressIndex,
-                                EnterpriseAddress = vaultAddress.VaultAddress.EnterpriseAddress
-                            };
+                            addressEntity = MapToEntity(request, asset, vaultAddress.VaultAddress);
 
                             await context.VaultAddresses.Upsert(addressEntity).RunAsync();
 
@@ -89,19 +78,7 @@ namespace Service.Fireblocks.Wallets.Services
                                 VaultAccountId = vault.VaultAccount.Id,
                             });
 
-                            addressEntity = new UserAddressEntity()
-                            {
-                                Address = vaultAsset.VaultAddress.Address,
-                                AssetId = asset.AssetMapping.AssetId,
-                                FireblocksAssetId = asset.AssetMapping.FireblocksAssetId,
-                                UserId = request.UserId,
-                                FireblocksVaultAccountId = vault.VaultAccount.Id,
-                                NetworkId = asset.AssetMapping.NetworkId,
-                                Tag = vaultAsset.VaultAddress.Tag,
-                                LegacyAddress = vaultAsset.VaultAddress.LegacyAddress,
-                                Bip44AddressIndex = vaultAsset.VaultAddress.Bip44AddressIndex,
-                                EnterpriseAddress = vaultAsset.VaultAddress.EnterpriseAddress
-                            };
+                            addressEntity = MapToEntity(request, asset, vaultAsset.VaultAddress);
 
                             await using var transaction = context.Database.BeginTransaction();
                             await context.VaultAccounts.Upsert(vault.VaultAccount).RunAsync();
@@ -119,14 +96,36 @@ namespace Service.Fireblocks.Wallets.Services
                 AssetId = addressEntity.AssetId,
                 AssetNetworkId = addressEntity.NetworkId,
                 UserId = request.UserId,
-                VaultAddress = new MyJetWallet.Fireblocks.Domain.Models.Addresses.VaultAddress
-                {
-                    Address = addressEntity.Address,
-                    Bip44AddressIndex = addressEntity.Bip44AddressIndex,
-                    EnterpriseAddress = addressEntity.EnterpriseAddress,
-                    LegacyAddress = addressEntity.LegacyAddress,
-                    Tag = addressEntity.Tag,
-                }
+                VaultAddress = MaptToDomain(addressEntity)
+            };
+        }
+
+        private static UserAddressEntity MapToEntity(GetUserWalletRequest request, AssetMappingNoSql asset, VaultAddress vaultAddress)
+        {
+            return new UserAddressEntity()
+            {
+                Address = vaultAddress.Address,
+                AssetId = asset.AssetMapping.AssetId,
+                FireblocksAssetId = asset.AssetMapping.FireblocksAssetId,
+                UserId = request.UserId,
+                FireblocksVaultAccountId = asset.AssetMapping.ActiveDepositAddessVaultAccountId,
+                NetworkId = asset.AssetMapping.NetworkId,
+                Tag = vaultAddress.Tag,
+                LegacyAddress = vaultAddress.LegacyAddress,
+                Bip44AddressIndex = vaultAddress.Bip44AddressIndex,
+                EnterpriseAddress = vaultAddress.EnterpriseAddress
+            };
+        }
+
+        private static MyJetWallet.Fireblocks.Domain.Models.Addresses.VaultAddress MaptToDomain(UserAddressEntity userAddressEntity)
+        {
+            return new MyJetWallet.Fireblocks.Domain.Models.Addresses.VaultAddress
+            {
+                Address = userAddressEntity.Address,
+                Bip44AddressIndex = userAddressEntity.Bip44AddressIndex,
+                EnterpriseAddress = userAddressEntity.EnterpriseAddress,
+                LegacyAddress = userAddressEntity.LegacyAddress,
+                Tag = userAddressEntity.Tag,
             };
         }
     }
