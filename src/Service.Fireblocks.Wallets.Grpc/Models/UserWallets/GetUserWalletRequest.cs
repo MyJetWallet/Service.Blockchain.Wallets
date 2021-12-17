@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace Service.Fireblocks.Wallets.Grpc.Models
+namespace Service.Fireblocks.Wallets.Grpc.Models.UserWallets
 {
     [DataContract]
     public class GetUserWalletRequest

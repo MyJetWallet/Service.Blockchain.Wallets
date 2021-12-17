@@ -11,7 +11,9 @@ namespace Service.Fireblocks.Wallets.Client
         {
             var factory = new FireblocksWalletsClientFactory(grpcServiceUrl);
 
-            builder.RegisterInstance(factory.GetWalletService()).As<IHelloService>().SingleInstance();
+            builder.RegisterInstance(factory.GetWalletService()).As<IWalletService>().SingleInstance();
+
+            builder.RegisterInstance(factory.GetAssetMappingService()).As<IAssetMappingService>().SingleInstance();
         }
     }
 }

@@ -17,7 +17,6 @@ namespace Service.Fireblocks.Wallets.Postgres
         public const string Schema = "fireblocks-wallets";
 
         private const string VaultAccountsTableName = "vault_accounts";
-        private const string VaultAssetsTableName = "vault_assets";
         private const string AddressesTableName = "addresses";
 
         public DbSet<VaultAccount> VaultAccounts { get; set; }

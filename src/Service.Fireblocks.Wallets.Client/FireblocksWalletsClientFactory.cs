@@ -12,5 +12,7 @@ namespace Service.Fireblocks.Wallets.Client
         }
 
         public IWalletService GetWalletService() => CreateGrpcService<IWalletService>();
+
+        public IAssetMappingService GetAssetMappingService() => CreateGrpcService<IAssetMappingService>();
     }
 }

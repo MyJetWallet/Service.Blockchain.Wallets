@@ -1,6 +1,6 @@
 using System.ServiceModel;
 using System.Threading.Tasks;
-using Service.Fireblocks.Wallets.Grpc.Models;
+using Service.Fireblocks.Wallets.Grpc.Models.UserWallets;
 
 namespace Service.Fireblocks.Wallets.Grpc
 {

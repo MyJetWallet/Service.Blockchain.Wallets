@@ -55,6 +55,8 @@ namespace Service.Fireblocks.Wallets
             {
                 endpoints.MapGrpcSchema<WalletService, IWalletService>();
 
+                endpoints.MapGrpcSchema<AssetMappingService, IAssetMappingService>();
+
                 endpoints.MapGrpcSchemaRegistry();
 
                 endpoints.MapGet("/", async context =>

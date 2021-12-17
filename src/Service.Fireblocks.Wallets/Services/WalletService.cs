@@ -6,7 +6,7 @@ using MyJetWallet.Fireblocks.Domain.Models.Addresses;
 using MyNoSqlServer.Abstractions;
 using Service.Fireblocks.Api.Grpc;
 using Service.Fireblocks.Wallets.Grpc;
-using Service.Fireblocks.Wallets.Grpc.Models;
+using Service.Fireblocks.Wallets.Grpc.Models.UserWallets;
 using Service.Fireblocks.Wallets.MyNoSql.AssetsMappings;
 using Service.Fireblocks.Wallets.Postgres;
 using Service.Fireblocks.Wallets.Postgres.Entities;
@@ -39,7 +39,7 @@ namespace Service.Fireblocks.Wallets.Services
 
             await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
 
-            UserAddressEntity addressEntity = await context.VaultAddresses.FirstAsync(x => x.FireblocksAssetId == asset.AssetMapping.FireblocksAssetId &&
+            UserAddressEntity addressEntity = await context.VaultAddresses.FirstOrDefaultAsync(x => x.FireblocksAssetId == asset.AssetMapping.FireblocksAssetId &&
             x.UserId == request.UserId);
 
             if (addressEntity == null)
@@ -72,9 +72,12 @@ namespace Service.Fireblocks.Wallets.Services
                                 HiddenOnUI = false
                             });
 
+                            if (vault.Error != null)
+                                throw new Exception();
+
                             var vaultAsset = await _vaultAccountService.CreateVaultAssetAsync(new Api.Grpc.Models.VaultAssets.CreateVaultAssetRequest
                             {
-                                AsssetId = request.AssetId,
+                                AsssetId = asset.AssetMapping.FireblocksAssetId,
                                 VaultAccountId = vault.VaultAccount.Id,
                             });
 
