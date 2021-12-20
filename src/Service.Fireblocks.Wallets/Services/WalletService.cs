@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -55,6 +56,18 @@ namespace Service.Fireblocks.Wallets.Services
                                 VaultAccountId = asset.AssetMapping.ActiveDepositAddessVaultAccountId
                             });
 
+                            if (vaultAddress.Error != null)
+                            {
+                                _logger.LogError("Can't create user wallet @{context}", request);
+                                return new GetUserWalletResponse
+                                {
+                                    Error = new Grpc.Models.ErrorResponse
+                                    {
+                                        ErrorCode = Grpc.Models.ErrorCode.Unknown
+                                    }
+                                };
+                            }
+
                             addressEntity = MapToEntity(request, asset, vaultAddress.VaultAddress);
 
                             await context.VaultAddresses.Upsert(addressEntity).RunAsync();
@@ -73,7 +86,18 @@ namespace Service.Fireblocks.Wallets.Services
                             });
 
                             if (vault.Error != null)
-                                throw new Exception();
+                            {
+                                _logger.LogError("Can't create user wallet @{context}", request);
+                                return new GetUserWalletResponse
+                                {
+                                    Error = new Grpc.Models.ErrorResponse
+                                    {
+                                        ErrorCode = Grpc.Models.ErrorCode.Unknown
+                                    }
+                                };
+                            }
+
+                            VaultAddress vaultAddress = null;
 
                             var vaultAsset = await _vaultAccountService.CreateVaultAssetAsync(new Api.Grpc.Models.VaultAssets.CreateVaultAssetRequest
                             {
@@ -81,7 +105,33 @@ namespace Service.Fireblocks.Wallets.Services
                                 VaultAccountId = vault.VaultAccount.Id,
                             });
 
-                            addressEntity = MapToEntity(request, asset, vaultAsset.VaultAddress);
+                            vaultAddress = vaultAsset.VaultAddress;
+
+                            if (vaultAddress == null)
+                            {
+                                var existing = await _vaultAccountService.GetVaultAddressAsync(new Api.Grpc.Models.Addresses.GetVaultAddressRequest
+                                {
+                                    AssetId = asset.AssetMapping.FireblocksAssetId,
+                                    VaultAccountId = vault.VaultAccount.Id,
+                                });
+
+                                vaultAddress = existing?.VaultAddress?.FirstOrDefault();
+                            }
+
+                            if (vaultAddress == null)
+                            {
+                                _logger.LogError("Can't create user wallet @{context}", request);
+                                return new GetUserWalletResponse
+                                {
+                                    Error = new Grpc.Models.ErrorResponse
+                                    {
+                                        ErrorCode = Grpc.Models.ErrorCode.Unknown
+                                    }
+                                };
+                            }
+
+
+                                addressEntity = MapToEntity(request, asset, vaultAddress);
 
                             await using var transaction = context.Database.BeginTransaction();
                             await context.VaultAccounts.Upsert(vault.VaultAccount).RunAsync();

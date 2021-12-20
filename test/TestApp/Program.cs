@@ -25,25 +25,79 @@ namespace TestApp
                 AssetMapping = new MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.AssetMapping
                 {
                     ActiveDepositAddessVaultAccountId = "16",
-                    AssetId = "Test",
+                    AssetId = "TestEth",
                     DepositType = MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.DepositType.Intermediate,
                     FireblocksAssetId = "ETH_TEST",
-                    NetworkId = "Test", 
+                    NetworkId = "TestEth", 
                     WithdrawalVaultAccountId = "11"
                 }
             });
 
-            var resp = await  client.GetUserWalletAsync(new ()
+            await assetMappings.UpsertAssetMappingAsync(new Service.Fireblocks.Wallets.Grpc.Models.AssetMappings.UpsertAssetMappingRequest()
             {
-                AssetId = "Test",
-                AssetNetworkId = "Test",
+                AssetMapping = new MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.AssetMapping
+                {
+                    ActiveDepositAddessVaultAccountId = "16",
+                    AssetId = "TestBtc",
+                    DepositType = MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.DepositType.Broker,
+                    FireblocksAssetId = "BTC_TEST",
+                    NetworkId = "TestBtc",
+                    WithdrawalVaultAccountId = "11"
+                }
+            });
+
+            await assetMappings.UpsertAssetMappingAsync(new Service.Fireblocks.Wallets.Grpc.Models.AssetMappings.UpsertAssetMappingRequest()
+            {
+                AssetMapping = new MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.AssetMapping
+                {
+                    ActiveDepositAddessVaultAccountId = "16",
+                    AssetId = "TestXlm",
+                    DepositType = MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.DepositType.Broker,
+                    FireblocksAssetId = "XLM_TEST",
+                    NetworkId = "TestXlm",
+                    WithdrawalVaultAccountId = "11"
+                }
+            });
+
+            var resp = await client.GetUserWalletAsync(new ()
+            {
+                AssetId = "TestEth",
+                AssetNetworkId = "TestEth",
                 UserId = "Test"
             });
 
             var resp2 = await client.GetUserWalletAsync(new()
             {
-                AssetId = "Test",
-                AssetNetworkId = "Test",
+                AssetId = "TestEth",
+                AssetNetworkId = "TestEth",
+                UserId = "Test"
+            });
+
+            var resp3 = await client.GetUserWalletAsync(new()
+            {
+                AssetId = "TestBtc",
+                AssetNetworkId = "TestBtc",
+                UserId = "Test"
+            });
+
+            var resp4 = await client.GetUserWalletAsync(new()
+            {
+                AssetId = "TestBtc",
+                AssetNetworkId = "TestBtc",
+                UserId = "Test"
+            });
+
+            var resp5 = await client.GetUserWalletAsync(new()
+            {
+                AssetId = "TestXlm",
+                AssetNetworkId = "TestXlm",
+                UserId = "Test"
+            });
+
+            var resp6 = await client.GetUserWalletAsync(new()
+            {
+                AssetId = "TestXlm",
+                AssetNetworkId = "TestXlm",
                 UserId = "Test"
             });
 
