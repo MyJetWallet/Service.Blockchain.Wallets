@@ -131,7 +131,7 @@ namespace Service.Fireblocks.Wallets.Services
                             }
 
 
-                                addressEntity = MapToEntity(request, asset, vaultAddress);
+                            addressEntity = MapToEntity(request, asset, vaultAddress);
 
                             await using var transaction = context.Database.BeginTransaction();
                             await context.VaultAccounts.Upsert(vault.VaultAccount).RunAsync();
