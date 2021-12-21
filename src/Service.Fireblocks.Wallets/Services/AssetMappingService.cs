@@ -21,6 +21,29 @@ namespace Service.Fireblocks.Wallets.Services
             this._assetMappings = assetMappings;
         }
 
+        public async Task<DeleteAssetMappingResponse> DeleteAssetMappingAsync(DeleteAssetMappingRequest request)
+        {
+            try
+            {
+                var mapping = await _assetMappings.DeleteAsync(AssetMappingNoSql.GeneratePartitionKey(request.AssetId),
+                    AssetMappingNoSql.GeneratePartitionKey(request.AssetNetworkId));
+
+                return new DeleteAssetMappingResponse { };
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error during AssetMapping delete: @{context}", request);
+                return new DeleteAssetMappingResponse
+                {
+                    Error = new Grpc.Models.ErrorResponse
+                    {
+                        Error = e.Message,
+                        ErrorCode = Grpc.Models.ErrorCode.Unknown
+                    }
+                };
+            }
+        }
+
         public async Task<GetAssetMappingResponse> GetAssetMappingAsync(GetAssetMappingRequest request)
         {
             try

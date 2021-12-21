@@ -10,6 +10,10 @@ namespace Service.Fireblocks.Wallets.Grpc
         [OperationContract]
         Task<GetAssetMappingResponse> GetAssetMappingAsync(GetAssetMappingRequest request);
 
+        [OperationContract]
         Task<UpsertAssetMappingResponse> UpsertAssetMappingAsync(UpsertAssetMappingRequest request);
+
+        [OperationContract]
+        Task<DeleteAssetMappingResponse> DeleteAssetMappingAsync(DeleteAssetMappingRequest request);
     }
 }
