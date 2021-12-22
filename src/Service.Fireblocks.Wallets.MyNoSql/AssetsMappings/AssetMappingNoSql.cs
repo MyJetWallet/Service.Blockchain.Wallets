@@ -5,7 +5,7 @@ namespace Service.Fireblocks.Wallets.MyNoSql.AssetsMappings
 {
     public class AssetMappingNoSql : MyNoSqlDbEntity
     {
-        public const string TableName = "mygetwallet-fireblocks-wallets-assetmapping";
+        public const string TableName = "myjetwallet-fireblocks-wallets-assetmapping";
         public static string GeneratePartitionKey(string assetId) => $"{assetId}";
         public static string GenerateRowKey(string networkId) =>
             $"{networkId}";

@@ -3,6 +3,7 @@ using Autofac.Core;
 using Autofac.Core.Registration;
 using MyJetWallet.Sdk.NoSql;
 using Service.Fireblocks.Api.Client;
+using Service.Fireblocks.Wallets.MyNoSql.Addresses;
 using Service.Fireblocks.Wallets.MyNoSql.AssetsMappings;
 
 namespace Service.Fireblocks.Wallets.Modules
@@ -13,6 +14,7 @@ namespace Service.Fireblocks.Wallets.Modules
         {
             builder.RegisterFireblocksApiClient(Program.Settings.FireblocksApiUrl);
             builder.RegisterMyNoSqlWriter<AssetMappingNoSql>(() => Program.Settings.MyNoSqlWriterUrl, AssetMappingNoSql.TableName);
+            builder.RegisterMyNoSqlWriter<VaultAddressNoSql>(() => Program.Settings.MyNoSqlWriterUrl, VaultAddressNoSql.TableName);
         }
     }
 }

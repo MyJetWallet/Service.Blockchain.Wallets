@@ -1,5 +1,6 @@
 ﻿using JetBrains.Annotations;
 using MyJetWallet.Sdk.Grpc;
+using MyNoSqlServer.DataReader;
 using Service.Fireblocks.Wallets.Grpc;
 
 namespace Service.Fireblocks.Wallets.Client

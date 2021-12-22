@@ -8,6 +8,7 @@ using MyNoSqlServer.Abstractions;
 using Service.Fireblocks.Api.Grpc;
 using Service.Fireblocks.Wallets.Grpc;
 using Service.Fireblocks.Wallets.Grpc.Models.UserWallets;
+using Service.Fireblocks.Wallets.MyNoSql.Addresses;
 using Service.Fireblocks.Wallets.MyNoSql.AssetsMappings;
 using Service.Fireblocks.Wallets.Postgres;
 using Service.Fireblocks.Wallets.Postgres.Entities;
@@ -19,16 +20,19 @@ namespace Service.Fireblocks.Wallets.Services
     {
         private readonly ILogger<WalletService> _logger;
         private readonly IVaultAccountService _vaultAccountService;
+        private readonly IMyNoSqlServerDataWriter<VaultAddressNoSql> _addressCache;
         private readonly IMyNoSqlServerDataWriter<AssetMappingNoSql> _assetMappings;
         private readonly DbContextOptionsBuilder<DatabaseContext> _dbContextOptionsBuilder;
 
         public WalletService(ILogger<WalletService> logger,
             IVaultAccountService vaultAccountService,
+            IMyNoSqlServerDataWriter<VaultAddressNoSql> addressCache,
             IMyNoSqlServerDataWriter<AssetMappingNoSql> assetMappings,
             DbContextOptionsBuilder<DatabaseContext> dbContextOptionsBuilder)
         {
             _logger = logger;
             this._vaultAccountService = vaultAccountService;
+            this._addressCache = addressCache;
             this._assetMappings = assetMappings;
             this._dbContextOptionsBuilder = dbContextOptionsBuilder;
         }
@@ -143,6 +147,13 @@ namespace Service.Fireblocks.Wallets.Services
                     default:
                         throw new ArgumentOutOfRangeException(nameof(asset.AssetMapping.DepositType), asset.AssetMapping.DepositType, null);
                 }
+
+            await _addressCache.InsertOrReplaceAsync(
+                VaultAddressNoSql.Create(
+                    addressEntity.UserId,
+                    addressEntity.AssetId,
+                    addressEntity.NetworkId,
+                    MaptToDomain(addressEntity)));
 
             return new GetUserWalletResponse
             {
