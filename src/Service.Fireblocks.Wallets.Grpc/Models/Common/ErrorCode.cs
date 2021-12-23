@@ -2,6 +2,11 @@
 {
     public enum ErrorCode
     {
-        Unknown
+        Unknown,
+        AssetDoNotFound,
+        AssetIsDisabled,
+        BlockchainIsNotConfigured,
+        BlockchainIsNotSupported,
+        PaymentIsNotConfigured
     }
 }

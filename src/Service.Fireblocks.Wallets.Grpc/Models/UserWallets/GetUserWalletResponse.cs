@@ -20,5 +20,17 @@ namespace Service.Fireblocks.Wallets.Grpc.Models.UserWallets
 
         [DataMember(Order = 99)]
         public ErrorResponse Error { get; set; }
+
+        public static GetUserWalletResponse CreateErrorResponse(string message, ErrorCode errorCode)
+        {
+            return new GetUserWalletResponse
+            {
+                Error = new ErrorResponse
+                {
+                    Error = message,
+                    ErrorCode = errorCode
+                }
+            };
+        }
     }
 }

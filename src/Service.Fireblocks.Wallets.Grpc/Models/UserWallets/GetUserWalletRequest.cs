@@ -6,12 +6,15 @@ namespace Service.Fireblocks.Wallets.Grpc.Models.UserWallets
     public class GetUserWalletRequest
     {
         [DataMember(Order = 1)]
-        public string UserId { get; set; }
+        public string WalletId { get; set; }
 
         [DataMember(Order = 2)]
-        public string AssetId { get; set; }
+        public string AssetSymbol { get; set; }
 
         [DataMember(Order = 3)]
-        public string AssetNetworkId { get; set; }
+        public string AssetNetwork { get; set; }
+
+        [DataMember(Order = 4)]
+        public string BrokerId { get; set; }
     }
 }

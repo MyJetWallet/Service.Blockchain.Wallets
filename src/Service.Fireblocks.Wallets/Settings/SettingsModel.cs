@@ -22,5 +22,8 @@ namespace Service.Fireblocks.Wallets.Settings
 
         [YamlProperty("FireblocksWallets.FireblocksApiUrl")]
         public string FireblocksApiUrl { get; internal set; }
+
+        [YamlProperty("FireblocksWallets.MyNoSqlReaderHostPort")]
+        public string MyNoSqlReaderHostPort { get; internal set; }
     }
 }

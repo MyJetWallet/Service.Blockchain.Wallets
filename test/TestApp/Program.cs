@@ -61,44 +61,44 @@ namespace TestApp
 
             var resp = await client.GetUserWalletAsync(new ()
             {
-                AssetId = "TestEth",
-                AssetNetworkId = "TestEth",
-                UserId = "Test"
+                AssetSymbol = "TestEth",
+                AssetNetwork = "TestEth",
+                WalletId = "Test"
             });
 
             var resp2 = await client.GetUserWalletAsync(new()
             {
-                AssetId = "TestEth",
-                AssetNetworkId = "TestEth",
-                UserId = "Test"
+                AssetSymbol = "TestEth",
+                AssetNetwork = "TestEth",
+                WalletId = "Test"
             });
 
             var resp3 = await client.GetUserWalletAsync(new()
             {
-                AssetId = "TestBtc",
-                AssetNetworkId = "TestBtc",
-                UserId = "Test"
+                AssetSymbol = "TestBtc",
+                AssetNetwork = "TestBtc",
+                WalletId = "Test"
             });
 
             var resp4 = await client.GetUserWalletAsync(new()
             {
-                AssetId = "TestBtc",
-                AssetNetworkId = "TestBtc",
-                UserId = "Test"
+                AssetSymbol = "TestBtc",
+                AssetNetwork = "TestBtc",
+                WalletId = "Test"
             });
 
             var resp5 = await client.GetUserWalletAsync(new()
             {
-                AssetId = "TestXlm",
-                AssetNetworkId = "TestXlm",
-                UserId = "Test"
+                AssetSymbol = "TestXlm",
+                AssetNetwork = "TestXlm",
+                WalletId = "Test"
             });
 
             var resp6 = await client.GetUserWalletAsync(new()
             {
-                AssetId = "TestXlm",
-                AssetNetworkId = "TestXlm",
-                UserId = "Test"
+                AssetSymbol = "TestXlm",
+                AssetNetwork = "TestXlm",
+                WalletId = "Test"
             });
 
             Console.WriteLine("End");

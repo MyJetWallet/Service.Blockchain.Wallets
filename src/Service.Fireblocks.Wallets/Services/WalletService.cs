@@ -3,9 +3,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MyJetWallet.Domain.Assets;
 using MyJetWallet.Fireblocks.Domain.Models.Addresses;
 using MyNoSqlServer.Abstractions;
+using Service.AssetsDictionary.Client;
 using Service.Fireblocks.Api.Grpc;
+using Service.Fireblocks.Wallets.Domain.Models;
 using Service.Fireblocks.Wallets.Grpc;
 using Service.Fireblocks.Wallets.Grpc.Models.UserWallets;
 using Service.Fireblocks.Wallets.MyNoSql.Addresses;
@@ -22,42 +25,95 @@ namespace Service.Fireblocks.Wallets.Services
         private readonly IVaultAccountService _vaultAccountService;
         private readonly IMyNoSqlServerDataWriter<VaultAddressNoSql> _addressCache;
         private readonly IMyNoSqlServerDataWriter<AssetMappingNoSql> _assetMappings;
+        private readonly IAssetsDictionaryClient _assetsDictionaryClient;
+        private readonly IAssetPaymentSettingsClient _assetPaymentSettingsClient;
         private readonly DbContextOptionsBuilder<DatabaseContext> _dbContextOptionsBuilder;
 
         public WalletService(ILogger<WalletService> logger,
             IVaultAccountService vaultAccountService,
             IMyNoSqlServerDataWriter<VaultAddressNoSql> addressCache,
             IMyNoSqlServerDataWriter<AssetMappingNoSql> assetMappings,
+            IAssetsDictionaryClient assetsDictionaryClient,
+            IAssetPaymentSettingsClient assetPaymentSettingsClient,
             DbContextOptionsBuilder<DatabaseContext> dbContextOptionsBuilder)
         {
             _logger = logger;
             this._vaultAccountService = vaultAccountService;
             this._addressCache = addressCache;
             this._assetMappings = assetMappings;
+            this._assetsDictionaryClient = assetsDictionaryClient;
+            this._assetPaymentSettingsClient = assetPaymentSettingsClient;
             this._dbContextOptionsBuilder = dbContextOptionsBuilder;
         }
 
         public async Task<GetUserWalletResponse> GetUserWalletAsync(GetUserWalletRequest request)
         {
-            var asset = await _assetMappings.GetAsync(AssetMappingNoSql.GeneratePartitionKey(request.AssetId),
-                AssetMappingNoSql.GenerateRowKey(request.AssetNetworkId));
+            var assetIdentity = new AssetIdentity()
+            {
+                BrokerId = request.BrokerId,
+                Symbol = request.AssetSymbol
+            };
+
+            var paymentSettings = _assetPaymentSettingsClient.GetAssetById(assetIdentity);
+            if (paymentSettings.Circle?.IsEnabledBlockchainDeposit == true &&
+                paymentSettings.Fireblocks?.IsEnabledDeposit == true)
+                return GetUserWalletResponse.CreateErrorResponse("There can be only one payment methos for asset.", Grpc.Models.ErrorCode.PaymentIsNotConfigured);
+
+            BlockchainIntegration blockchainIntegration;
+
+            if (paymentSettings.Circle?.IsEnabledBlockchainDeposit == true)
+                blockchainIntegration = BlockchainIntegration.Circle;
+
+            if (paymentSettings.Fireblocks?.IsEnabledDeposit == true)
+                blockchainIntegration = BlockchainIntegration.Fireblocks;
+
+            var asset = _assetsDictionaryClient.GetAssetById(assetIdentity);
+
+            if (asset == null)
+                return GetUserWalletResponse.CreateErrorResponse("Asset do not found", Grpc.Models.ErrorCode.AssetDoNotFound);
+
+            if (!asset.IsEnabled)
+                return GetUserWalletResponse.CreateErrorResponse("Asset is disabled", Grpc.Models.ErrorCode.AssetIsDisabled);
+
+            var blockchain = request.AssetNetwork;
+            if (blockchain == null)
+            {
+                if (asset.DepositBlockchains.Count != 1)
+                {
+                    return GetUserWalletResponse.CreateErrorResponse("Blockchain is not configured", 
+                        Grpc.Models.ErrorCode.BlockchainIsNotConfigured);
+                }
+
+                blockchain = asset.DepositBlockchains.First();
+            }
+            else
+            {
+                if (!asset.DepositBlockchains.Contains(blockchain))
+                {
+                    return GetUserWalletResponse.CreateErrorResponse("Blockchain is not supported",
+                        Grpc.Models.ErrorCode.BlockchainIsNotSupported);
+                }
+            }
+
+            var assetMapping = await _assetMappings.GetAsync(AssetMappingNoSql.GeneratePartitionKey(request.AssetSymbol),
+                AssetMappingNoSql.GenerateRowKey(request.AssetNetwork));
 
             await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
 
-            UserAddressEntity addressEntity = await context.VaultAddresses.FirstOrDefaultAsync(x => x.FireblocksAssetId == asset.AssetMapping.FireblocksAssetId &&
-            x.UserId == request.UserId);
+            UserAddressEntity addressEntity = await context.VaultAddresses.FirstOrDefaultAsync(x => x.FireblocksAssetId == assetMapping.AssetMapping.FireblocksAssetId &&
+            x.WalletId == request.WalletId);
 
             if (addressEntity == null)
-                switch (asset.AssetMapping.DepositType)
+                switch (assetMapping.AssetMapping.DepositType)
                 {
                     case MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.DepositType.Broker:
                         {
                             var vaultAddress = await _vaultAccountService.CreateVaultAddressAsync(new Api.Grpc.Models.Addresses.CreateVaultAddressRequest
                             {
-                                AssetId = asset.AssetMapping.FireblocksAssetId,
-                                CustomerRefId = request.UserId,
-                                Name = request.UserId,
-                                VaultAccountId = asset.AssetMapping.ActiveDepositAddessVaultAccountId
+                                AssetId = assetMapping.AssetMapping.FireblocksAssetId,
+                                CustomerRefId = request.WalletId,
+                                Name = request.WalletId,
+                                VaultAccountId = assetMapping.AssetMapping.ActiveDepositAddessVaultAccountId
                             });
 
                             if (vaultAddress.Error != null)
@@ -72,7 +128,7 @@ namespace Service.Fireblocks.Wallets.Services
                                 };
                             }
 
-                            addressEntity = MapToEntity(request, asset, vaultAddress.VaultAddress);
+                            addressEntity = MapToEntity(request, assetMapping, vaultAddress.VaultAddress);
 
                             await context.VaultAddresses.Upsert(addressEntity).RunAsync();
 
@@ -83,8 +139,8 @@ namespace Service.Fireblocks.Wallets.Services
                             var vault = await _vaultAccountService.CreateVaultAccountAsync(new Api.Grpc.Models.VaultAccounts.CreateVaultAccountRequest
                             {
                                 AutoFuel = true,
-                                Name = request.UserId,
-                                CustomerRefId = request.UserId,
+                                Name = request.WalletId,
+                                CustomerRefId = request.WalletId,
                                 //We can hide it on ui of fireblocks
                                 HiddenOnUI = false
                             });
@@ -105,7 +161,7 @@ namespace Service.Fireblocks.Wallets.Services
 
                             var vaultAsset = await _vaultAccountService.CreateVaultAssetAsync(new Api.Grpc.Models.VaultAssets.CreateVaultAssetRequest
                             {
-                                AsssetId = asset.AssetMapping.FireblocksAssetId,
+                                AsssetId = assetMapping.AssetMapping.FireblocksAssetId,
                                 VaultAccountId = vault.VaultAccount.Id,
                             });
 
@@ -115,7 +171,7 @@ namespace Service.Fireblocks.Wallets.Services
                             {
                                 var existing = await _vaultAccountService.GetVaultAddressAsync(new Api.Grpc.Models.Addresses.GetVaultAddressRequest
                                 {
-                                    AssetId = asset.AssetMapping.FireblocksAssetId,
+                                    AssetId = assetMapping.AssetMapping.FireblocksAssetId,
                                     VaultAccountId = vault.VaultAccount.Id,
                                 });
 
@@ -135,7 +191,7 @@ namespace Service.Fireblocks.Wallets.Services
                             }
 
 
-                            addressEntity = MapToEntity(request, asset, vaultAddress);
+                            addressEntity = MapToEntity(request, assetMapping, vaultAddress);
 
                             await using var transaction = context.Database.BeginTransaction();
                             await context.VaultAccounts.Upsert(vault.VaultAccount).RunAsync();
@@ -145,12 +201,12 @@ namespace Service.Fireblocks.Wallets.Services
                             break;
                         }
                     default:
-                        throw new ArgumentOutOfRangeException(nameof(asset.AssetMapping.DepositType), asset.AssetMapping.DepositType, null);
+                        throw new ArgumentOutOfRangeException(nameof(assetMapping.AssetMapping.DepositType), assetMapping.AssetMapping.DepositType, null);
                 }
 
             await _addressCache.InsertOrReplaceAsync(
                 VaultAddressNoSql.Create(
-                    addressEntity.UserId,
+                    addressEntity.WalletId,
                     addressEntity.AssetId,
                     addressEntity.NetworkId,
                     MaptToDomain(addressEntity)));
@@ -159,7 +215,7 @@ namespace Service.Fireblocks.Wallets.Services
             {
                 AssetId = addressEntity.AssetId,
                 AssetNetworkId = addressEntity.NetworkId,
-                UserId = request.UserId,
+                UserId = request.WalletId,
                 VaultAddress = MaptToDomain(addressEntity)
             };
         }
@@ -171,7 +227,7 @@ namespace Service.Fireblocks.Wallets.Services
                 Address = vaultAddress.Address,
                 AssetId = asset.AssetMapping.AssetId,
                 FireblocksAssetId = asset.AssetMapping.FireblocksAssetId,
-                UserId = request.UserId,
+                WalletId = request.WalletId,
                 FireblocksVaultAccountId = asset.AssetMapping.ActiveDepositAddessVaultAccountId,
                 NetworkId = asset.AssetMapping.NetworkId,
                 Tag = vaultAddress.Tag,

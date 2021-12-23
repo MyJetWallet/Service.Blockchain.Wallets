@@ -18,8 +18,8 @@ namespace Service.Fireblocks.Wallets.Client
         }
         public async Task<GetUserWalletResponse> GetUserWalletAsync(GetUserWalletRequest request)
         {
-            var cache = _dataReader.Get(VaultAddressNoSql.GeneratePartitionKey(request.UserId), 
-                VaultAddressNoSql.GenerateRowKey(request.AssetId, request.AssetNetworkId));
+            var cache = _dataReader.Get(VaultAddressNoSql.GeneratePartitionKey(request.WalletId), 
+                VaultAddressNoSql.GenerateRowKey(request.AssetSymbol, request.AssetNetwork));
 
             if (cache != null)
             {

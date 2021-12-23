@@ -56,7 +56,7 @@ namespace Service.Fireblocks.Wallets.Postgres
         private static void RegisterVaultAddresses(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<UserAddressEntity>().ToTable(AddressesTableName);
-            modelBuilder.Entity<UserAddressEntity>().HasKey(x => new { x.UserId, x.FireblocksAssetId });
+            modelBuilder.Entity<UserAddressEntity>().HasKey(x => new { x.WalletId, x.FireblocksAssetId });
         }
     }
 }
