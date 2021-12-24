@@ -16,7 +16,7 @@ namespace TestApp
             Console.ReadLine();
 
 
-            var factory = new FireblocksWalletsClientFactory("http://localhost:5001");
+            var factory = new BlockchainWalletsClientFactory("http://localhost:5001");
             var client = factory.GetWalletService();
             var assetMappings = factory.GetAssetMappingService();
 

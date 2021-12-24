@@ -10,9 +10,9 @@ namespace Service.Blockchain.Wallets.Client
 {
     public static class AutofacHelper
     {
-        public static void RegisterFireblocksWalletsClient(this ContainerBuilder builder, string grpcServiceUrl, MyNoSqlTcpClient tcpClient)
+        public static void RegisterBlockchainWalletsClient(this ContainerBuilder builder, string grpcServiceUrl, MyNoSqlTcpClient tcpClient)
         {
-            var factory = new FireblocksWalletsClientFactory(grpcServiceUrl);
+            var factory = new BlockchainWalletsClientFactory(grpcServiceUrl);
 
             var reader = builder.RegisterMyNoSqlReader<VaultAddressNoSql>(tcpClient, VaultAddressNoSql.TableName);
             var walletService = factory.GetWalletService();

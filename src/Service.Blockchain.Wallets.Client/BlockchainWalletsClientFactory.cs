@@ -6,9 +6,9 @@ using Service.Blockchain.Wallets.Grpc;
 namespace Service.Blockchain.Wallets.Client
 {
     [UsedImplicitly]
-    public class FireblocksWalletsClientFactory: MyGrpcClientFactory
+    public class BlockchainWalletsClientFactory: MyGrpcClientFactory
     {
-        public FireblocksWalletsClientFactory(string grpcServiceUrl) : base(grpcServiceUrl)
+        public BlockchainWalletsClientFactory(string grpcServiceUrl) : base(grpcServiceUrl)
         {
         }
 
