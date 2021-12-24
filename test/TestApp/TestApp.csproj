@@ -11,8 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Service.Fireblocks.Wallets.Client\Service.Fireblocks.Wallets.Client.csproj" />
-    <ProjectReference Include="..\..\src\Service.Fireblocks.Wallets.Grpc\Service.Fireblocks.Wallets.Grpc.csproj" />
+    <ProjectReference Include="..\..\src\Service.Blockchain.Wallets.Client\Service.Blockchain.Wallets.Client.csproj" />
+    <ProjectReference Include="..\..\src\Service.Blockchain.Wallets.Grpc\Service.Blockchain.Wallets.Grpc.csproj" />
   </ItemGroup>
 
 </Project>

@@ -31,10 +31,16 @@ jobs:
       run: ls
 
     - name: Publish Service
-      run: dotnet publish ./src/Service.Fireblocks.Wallets/Service.Fireblocks.Wallets.csproj --configuration Release /p:AssemblyVersion=${GITHUB_REF#refs/tags/} --output ./publish-api
+      run: dotnet publish ./src/Service.Blockchain.Wallets/Service.Blockchain.Wallets.csproj --configuration Release /p:AssemblyVersion=${GITHUB_REF#refs/tags/} --output ./publish-api
 
     - name: Check Service dir
       run: ls ./publish-api
+
+    - name: Publish Service
+      run: dotnet publish ./src/Service.Blockchain.Wallets.Job/Service.Blockchain.Wallets.Job.csproj --configuration Release /p:AssemblyVersion=${GITHUB_REF#refs/tags/} --output ./publish-job
+
+    - name: Check Job dir
+      run: ls ./publish-job
 
     - name: Extract branch name
       shell: bash
@@ -48,9 +54,9 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
         path: ./publish-api
         registry: docker.pkg.github.com
-        repository: ${{ secrets.ORG_NAME }}/service.fireblocks.wallets/myjetwallet.service.fireblocks.wallets
+        repository: ${{ secrets.ORG_NAME }}/service.blockchain.wallets/myjetwallet.service.blockchain.wallets
         tag_with_ref: true
-        build_args: app_version=myjetwallet.service.fireblocks.wallets:${{ steps.extract_branch.outputs.branch }},app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+        build_args: app_version=myjetwallet.service.blockchain.wallets:${{ steps.extract_branch.outputs.branch }},app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
 
     - name: Publish image ST
       uses: docker/build-push-action@v1
@@ -59,9 +65,32 @@ jobs:
         password: ${{ secrets.ST_DOCKER_PASSWORD }}
         path: ./publish-api
         registry: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
-        repository: spot/myjetwallet.service.fireblocks.wallets
+        repository: spot/myjetwallet.service.blockchain.wallets
         tag_with_ref: true
-        build_args: app_version=myjetwallet.service.fireblocks.wallets:${{ steps.extract_branch.outputs.branch }},app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+        build_args: app_version=myjetwallet.service.blockchain.wallets:${{ steps.extract_branch.outputs.branch }},app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
+    - name: Publish image
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        path: ./publish-job
+        registry: docker.pkg.github.com
+        repository: ${{ secrets.ORG_NAME }}/service.blockchain.wallets/myjetwallet.service.blockchain.wallets.job
+        tag_with_ref: true
+        build_args: app_version=myjetwallet.service.blockchain.wallets.job:${{ steps.extract_branch.outputs.branch }},app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
+    - name: Publish image ST
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.ST_DOCKER_USER }}
+        password: ${{ secrets.ST_DOCKER_PASSWORD }}
+        path: ./publish-job
+        registry: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+        repository: spot/myjetwallet.service.blockchain.wallets.job
+        tag_with_ref: true
+        build_args: app_version=myjetwallet.service.blockchain.wallets.job:${{ steps.extract_branch.outputs.branch }},app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
 
   update_version:
     needs: build
@@ -74,12 +103,17 @@ jobs:
         ref: uat        
         token: ${{ secrets.UAT_GIT_TOKEN }}
     - run: |
-        pattern=myjetwallet.service.fireblocks.wallets:.*$
-        imagename=myjetwallet.service.fireblocks.wallets:${GITHUB_REF#refs/tags/}
+        pattern=myjetwallet.service.blockchain.wallets:.*$
+        imagename=myjetwallet.service.blockchain.wallets:${GITHUB_REF#refs/tags/}
+        reg=$"s/${pattern}/${imagename}/g"
+        echo $reg
+        find . -type f -name "deployment.*" -print0 -exec sed -i -r $reg {} \;
+        pattern=myjetwallet.service.blockchain.wallets.job:.*$
+        imagename=myjetwallet.service.blockchain.wallets.job:${GITHUB_REF#refs/tags/}
         reg=$"s/${pattern}/${imagename}/g"
         echo $reg
         find . -type f -name "deployment.*" -print0 -exec sed -i -r $reg {} \;
         git config user.name github-actions
         git config user.email github-actions@github.com
-        git commit -a -m "Update version of service myjetwallet.service.fireblocks.wallets"
+        git commit -a -m "Update version of service myjetwallet.service.blockchain.wallets"
         git push

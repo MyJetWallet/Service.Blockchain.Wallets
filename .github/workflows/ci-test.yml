@@ -32,10 +32,16 @@ jobs:
       run: ls
 
     - name: Publish Service
-      run: dotnet publish --no-build ./src/Service.Fireblocks.Wallets/Service.Fireblocks.Wallets.csproj --configuration Release --output ./publish-api
+      run: dotnet publish --no-build ./src/Service.Blockchain.Wallets/Service.Blockchain.Wallets.csproj --configuration Release --output ./publish-api
 
     - name: Check Service dir
       run: ls ./publish-api
+
+    - name: Publish Service
+      run: dotnet publish --no-build ./src/Service.Blockchain.Wallets.Job/Service.Blockchain.Wallets.Job.csproj --configuration Release --output ./publish-job
+
+    - name: Check Job dir
+      run: ls ./publish-job
       
     - name: Publish image
       uses: docker/build-push-action@v1
@@ -44,9 +50,9 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
         path: ./publish-api
         registry: docker.pkg.github.com
-        repository: ${{ secrets.ORG_NAME }}/service.fireblocks.wallets/myjetwallet.service.fireblocks.wallets-test
+        repository: ${{ secrets.ORG_NAME }}/service.blockchain.wallets/myjetwallet.service.blockchain.wallets-test
         tags: latest
-        build_args: app_version=myjetwallet.service.fireblocks.wallets-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+        build_args: app_version=myjetwallet.service.blockchain.wallets-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
 
     - name: Publish image ST
       uses: docker/build-push-action@v1
@@ -55,10 +61,34 @@ jobs:
         password: ${{ secrets.ST_DOCKER_PASSWORD }}
         path: ./publish-api
         registry: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
-        repository: spot/myjetwallet.service.fireblocks.wallets-test
+        repository: spot/myjetwallet.service.blockchain.wallets-test
         tags: latest
         add_git_labels: true
-        build_args: app_version=myjetwallet.service.fireblocks.wallets-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+        build_args: app_version=myjetwallet.service.blockchain.wallets-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
+    - name: Publish image
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        path: ./publish-job
+        registry: docker.pkg.github.com
+        repository: ${{ secrets.ORG_NAME }}/service.blockchain.wallets/myjetwallet.service.blockchain.wallets.job-test
+        tags: latest
+        build_args: app_version=myjetwallet.service.blockchain.wallets.job-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
+    - name: Publish image ST
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.ST_DOCKER_USER }}
+        password: ${{ secrets.ST_DOCKER_PASSWORD }}
+        path: ./publish-job
+        registry: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+        repository: spot/myjetwallet.service.blockchain.wallets.job-test
+        tags: latest
+        add_git_labels: true
+        build_args: app_version=myjetwallet.service.blockchain.wallets.job-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
 
   restart:
     runs-on: self-hosted   
@@ -69,6 +99,17 @@ jobs:
       env:
         KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA__ST_TEST }}
         NAMESPACE: ${{ secrets.KUBE_TEST_NAMESPACE }}
-        POD: fireblocks-wallets
+        POD: blockchain-wallets
+
+  restart_job:
+    runs-on: self-hosted   
+    needs: build
+    steps:
+    - name: Restart service
+      uses: Myjetwallet/kube-restart-pods@master
+      env:
+        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA__ST_TEST }}
+        NAMESPACE: ${{ secrets.KUBE_TEST_NAMESPACE }}
+        POD: blockchain-wallets-job
 
 
