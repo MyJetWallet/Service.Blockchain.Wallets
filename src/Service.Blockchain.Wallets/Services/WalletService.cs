@@ -18,6 +18,10 @@ using Service.Blockchain.Wallets.Postgres.Entities;
 using MyJetWallet.Circle.Settings.Services;
 using Service.Circle.Signer.Grpc;
 using Dapper;
+using static Service.Blockchain.Wallets.Grpc.Models.UserWallets.GetUserByAddressResponse;
+using System.Text;
+using System.Dynamic;
+using System.Collections.Generic;
 
 namespace Service.Blockchain.Wallets.Services
 {
@@ -101,7 +105,7 @@ namespace Service.Blockchain.Wallets.Services
 
             if (addressEntity == null)
             {
-                var assignQuery =  $@"UPDATE ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} as upd
+                var assignQuery = $@"UPDATE ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} as upd
                                       SET ""{nameof(UserAddressEntity.WalletId)}"" = @WalletId,
                                       ""{nameof(UserAddressEntity.ClientId)}"" = @ClientId,
                                       ""{nameof(UserAddressEntity.BrokerId)}"" = @BrokerId,
@@ -117,7 +121,7 @@ namespace Service.Blockchain.Wallets.Services
                                       RETURNING *;";
 
                 var addressEntities = await context.Database.GetDbConnection()
-                        .QueryAsync<UserAddressEntity>(assignQuery, new 
+                        .QueryAsync<UserAddressEntity>(assignQuery, new
                         {
                             WalletId = request.WalletId,
                             ClientId = request.ClientId,
@@ -130,9 +134,9 @@ namespace Service.Blockchain.Wallets.Services
                 //ERROR LOG: !!
                 if (addressEntities.Count() != 1)
                 {
-                    _logger.LogError("Can't get address for @{context}", new 
+                    _logger.LogError("Can't get address for @{context}", new
                     {
-                        Request= request,
+                        Request = request,
                         AddressEntities = addressEntities
                     });
 
@@ -157,6 +161,62 @@ namespace Service.Blockchain.Wallets.Services
                 UserId = request.WalletId,
                 VaultAddress = MaptToDomain(addressEntity)
             };
+        }
+
+        public async Task<GetUserByAddressResponse> GetUserByAddressAsync(GetUserByAddressRequest request)
+        {
+            try
+            {
+                await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+
+                var tuples = request.Addresses.Select(x => new 
+                {
+                    Address = x.Address.ToLowerInvariant(),
+                    Tag = x.Tag,
+                }).ToArray();
+
+                var builder = new StringBuilder();
+                var parameter = (new ExpandoObject()) as IDictionary<string, Object>;
+
+                for (var i = 0; i < tuples.Count(); i++)
+                {
+                    builder.Append($"(@Address{i}, @Tag{i}),");
+                    parameter.Add($"Address{i}", tuples[i].Address);
+                    parameter.Add($"Tag{i}", tuples[i].Tag);
+                }
+
+                builder.Remove(builder.Length - 1, 1);
+
+                var assignQuery = $@"SELECT * FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName}
+                                      WHERE (""{nameof(UserAddressEntity.AddressLowerCase)}"", ""{nameof(UserAddressEntity.Tag)}"") in ({builder})";
+
+                var addressEntities = await context.Database.GetDbConnection()
+                        .QueryAsync<UserAddressEntity>(assignQuery, (object)parameter);
+
+                return new GetUserByAddressResponse
+                {
+                    Users = addressEntities.Select(x => new UserForAddress
+                    {
+                        Address = x.AddressLowerCase,
+                        BrokerId = x.BrokerId,
+                        ClientId = x.ClientId,
+                        Tag = x.Tag,
+                        WalletId = x.WalletId
+                    }).ToArray(),
+                };
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Can't get user for address {@context}", request);
+                return new GetUserByAddressResponse
+                {
+                    Error = new Grpc.Models.ErrorResponse
+                    {
+                        Error = e.Message,
+                        ErrorCode = Grpc.Models.ErrorCode.Unknown
+                    }
+                };
+            }
         }
 
         private static MyJetWallet.Fireblocks.Domain.Models.Addresses.VaultAddress MaptToDomain(UserAddressEntity userAddressEntity)

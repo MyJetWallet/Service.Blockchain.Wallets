@@ -16,6 +16,12 @@ namespace Service.Blockchain.Wallets.Client
             this._service = service;
             this._dataReader = dataReader;
         }
+
+        public Task<GetUserByAddressResponse> GetUserByAddressAsync(GetUserByAddressRequest request)
+        {
+            return _service.GetUserByAddressAsync(request);
+        }
+
         public async Task<GetUserWalletResponse> GetUserWalletAsync(GetUserWalletRequest request)
         {
             var cache = _dataReader.Get(VaultAddressNoSql.GeneratePartitionKey(request.WalletId), 

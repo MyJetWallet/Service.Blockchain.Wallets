@@ -9,5 +9,8 @@ namespace Service.Blockchain.Wallets.Grpc
     {
         [OperationContract]
         Task<GetUserWalletResponse> GetUserWalletAsync(GetUserWalletRequest request);
+
+        [OperationContract]
+        Task<GetUserByAddressResponse> GetUserByAddressAsync(GetUserByAddressRequest request);
     }
 }

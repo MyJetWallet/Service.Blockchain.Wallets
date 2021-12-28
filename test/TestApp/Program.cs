@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using ProtoBuf.Grpc.Client;
 using Service.Blockchain.Wallets.Client;
 using Service.Blockchain.Wallets.Grpc.Models;
+using static Service.Blockchain.Wallets.Grpc.Models.UserWallets.GetUserByAddressRequest;
 
 namespace TestApp
 {
@@ -58,6 +59,15 @@ namespace TestApp
             //        WithdrawalVaultAccountId = "11"
             //    }
             //});
+
+            var respx = await client.GetUserByAddressAsync(new()
+            {
+                Addresses = new AddressAndTag[]
+                {
+                    new AddressAndTag{ Address = "0x1d2bde284ebb9c0c8e709d98984c53f843362eb5", Tag = "",},
+                    new AddressAndTag{ Address = "0x5a036b34148c438766195d3c61b2e0113804e714", Tag = "",},
+                }
+            });
 
             var resp = await client.GetUserWalletAsync(new ()
             {
