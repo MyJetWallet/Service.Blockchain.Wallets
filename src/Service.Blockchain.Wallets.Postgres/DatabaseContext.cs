@@ -62,6 +62,7 @@ namespace Service.Blockchain.Wallets.Postgres
             modelBuilder.Entity<UserAddressEntity>().HasIndex(x => new { x.WalletId, x.AssetSymbol, x.AssetNetwork })
                 //.HasFilter("WalletId IS NOT NULL")
                 .IsUnique();
+            modelBuilder.Entity<UserAddressEntity>().HasIndex(x => new { x.AddressLowerCase, x.Tag });
         }
     }
 }
