@@ -189,149 +189,147 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                 if (asset == null || !asset.IsEnabled)
                     continue;
 
-                foreach (var blockchain in asset.DepositBlockchains)
-                {
-                    walletCountDict.TryGetValue((asset.Symbol, blockchain), out var entitiesCount);
+                var blockchain = fireblockAsset.AssetMapping.NetworkId;
+                walletCountDict.TryGetValue((asset.Symbol, blockchain), out var entitiesCount);
 
-                    if (entitiesCount < maxCount)
-                    {
-                        for (var i = 1; i <= maxCount - entitiesCount; i++)
-                            try
+                if (entitiesCount < maxCount)
+                {
+                    for (var i = 1; i <= maxCount - entitiesCount; i++)
+                        try
+                        {
+                            var pregeneratedId = Guid.NewGuid().ToString();
+                            //var label = $"PreGenerated-{id}";
+                            switch (fireblockAsset.AssetMapping.DepositType)
                             {
-                                var pregeneratedId = Guid.NewGuid().ToString();
-                                //var label = $"PreGenerated-{id}";
-                                switch (fireblockAsset.AssetMapping.DepositType)
-                                {
-                                    case MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.DepositType.Broker:
+                                case MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.DepositType.Broker:
+                                    {
+                                        var vaultAddress = await _vaultAccountService.CreateVaultAddressAsync(new()
                                         {
-                                            var vaultAddress = await _vaultAccountService.CreateVaultAddressAsync(new()
+                                            AssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
+                                            CustomerRefId = pregeneratedId,
+                                            Name = pregeneratedId,
+                                            VaultAccountId = fireblockAsset.AssetMapping.ActiveDepositAddessVaultAccountId
+                                        });
+
+                                        if (vaultAddress.Error != null)
+                                        {
+                                            _logger.LogError("Can't create fireblocks wallet @{context}", new { });
+                                            continue;
+                                        }
+
+                                        var addressEntity = new UserAddressEntity
+                                        {
+                                            Address = vaultAddress.VaultAddress.Address,
+                                            AddressLowerCase = vaultAddress.VaultAddress.Address.ToLowerInvariant(),
+                                            AssetNetwork = blockchain,
+                                            AssetSymbol = asset.Symbol,
+                                            Bip44AddressIndex = vaultAddress.VaultAddress.Bip44AddressIndex,
+                                            AddressId = pregeneratedId,
+                                            EnterpriseAddress = vaultAddress.VaultAddress.EnterpriseAddress,
+                                            FireblocksAssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
+                                            FireblocksVaultAccountId = fireblockAsset.AssetMapping.ActiveDepositAddessVaultAccountId,
+                                            Integration = Domain.Models.BlockchainIntegration.Fireblocks,
+                                            IsActive = true,
+                                            Status = Domain.Models.AddressStatus.New,
+                                            Tag = vaultAddress.VaultAddress.Tag
+                                        };
+
+                                        await context.VaultAddresses.Upsert(addressEntity).RunAsync();
+
+                                        break;
+                                    }
+                                case MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.DepositType.Intermediate:
+                                    {
+                                        var vault = await _vaultAccountService.CreateVaultAccountAsync(new()
+                                        {
+                                            AutoFuel = true,
+                                            Name = pregeneratedId,
+                                            CustomerRefId = pregeneratedId,
+                                            //We can hide it on ui of fireblocks
+                                            HiddenOnUI = false
+                                        });
+
+                                        if (vault.Error != null)
+                                        {
+                                            _logger.LogError("Can't create fireblocks wallet @{context}", new { });
+                                            continue;
+                                        }
+
+                                        VaultAddress vaultAddress = null;
+
+                                        var vaultAsset = await _vaultAccountService.CreateVaultAssetAsync(new()
+                                        {
+                                            AsssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
+                                            VaultAccountId = vault.VaultAccount.Id,
+                                        });
+
+                                        vaultAddress = vaultAsset.VaultAddress;
+
+                                        if (vaultAddress == null)
+                                        {
+                                            var existing = await _vaultAccountService.GetVaultAddressAsync(new()
                                             {
                                                 AssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
-                                                CustomerRefId = pregeneratedId,
-                                                Name = pregeneratedId,
-                                                VaultAccountId = fireblockAsset.AssetMapping.ActiveDepositAddessVaultAccountId
-                                            });
-
-                                            if (vaultAddress.Error != null)
-                                            {
-                                                _logger.LogError("Can't create fireblocks wallet @{context}", new { });
-                                                continue;
-                                            }
-
-                                            var addressEntity = new UserAddressEntity
-                                            {
-                                                Address = vaultAddress.VaultAddress.Address,
-                                                AddressLowerCase = vaultAddress.VaultAddress.Address.ToLowerInvariant(),
-                                                AssetNetwork = blockchain,
-                                                AssetSymbol = asset.Symbol,
-                                                Bip44AddressIndex = vaultAddress.VaultAddress.Bip44AddressIndex,
-                                                AddressId = pregeneratedId,
-                                                EnterpriseAddress = vaultAddress.VaultAddress.EnterpriseAddress,
-                                                FireblocksAssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
-                                                FireblocksVaultAccountId = fireblockAsset.AssetMapping.ActiveDepositAddessVaultAccountId,
-                                                Integration = Domain.Models.BlockchainIntegration.Fireblocks,
-                                                IsActive = true,
-                                                Status = Domain.Models.AddressStatus.New,
-                                                Tag = vaultAddress.VaultAddress.Tag
-                                            };
-
-                                            await context.VaultAddresses.Upsert(addressEntity).RunAsync();
-
-                                            break;
-                                        }
-                                    case MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.DepositType.Intermediate:
-                                        {
-                                            var vault = await _vaultAccountService.CreateVaultAccountAsync(new()
-                                            {
-                                                AutoFuel = true,
-                                                Name = pregeneratedId,
-                                                CustomerRefId = pregeneratedId,
-                                                //We can hide it on ui of fireblocks
-                                                HiddenOnUI = false
-                                            });
-
-                                            if (vault.Error != null)
-                                            {
-                                                _logger.LogError("Can't create fireblocks wallet @{context}", new { });
-                                                continue;
-                                            }
-
-                                            VaultAddress vaultAddress = null;
-
-                                            var vaultAsset = await _vaultAccountService.CreateVaultAssetAsync(new()
-                                            {
-                                                AsssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
                                                 VaultAccountId = vault.VaultAccount.Id,
                                             });
 
-                                            vaultAddress = vaultAsset.VaultAddress;
-
-                                            if (vaultAddress == null)
-                                            {
-                                                var existing = await _vaultAccountService.GetVaultAddressAsync(new()
-                                                {
-                                                    AssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
-                                                    VaultAccountId = vault.VaultAccount.Id,
-                                                });
-
-                                                vaultAddress = existing?.VaultAddress?.FirstOrDefault();
-                                            }
-
-                                            if (vaultAddress == null)
-                                            {
-                                                _logger.LogError("Can't create fireblocks wallet @{context}", new { });
-                                                continue;
-                                            }
-
-
-                                            var addressEntity = new UserAddressEntity
-                                            {
-                                                Address = vaultAddress.Address,
-                                                AddressLowerCase = vaultAddress.Address.ToLowerInvariant(),
-                                                AssetNetwork = blockchain,
-                                                AssetSymbol = asset.Symbol,
-                                                Bip44AddressIndex = vaultAddress.Bip44AddressIndex,
-                                                AddressId = pregeneratedId,
-                                                EnterpriseAddress = vaultAddress.EnterpriseAddress,
-                                                FireblocksAssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
-                                                FireblocksVaultAccountId = fireblockAsset.AssetMapping.ActiveDepositAddessVaultAccountId,
-                                                Integration = Domain.Models.BlockchainIntegration.Fireblocks,
-                                                IsActive = true,
-                                                Status = Domain.Models.AddressStatus.New,
-                                                Tag = vaultAddress.Tag
-                                            };
-
-                                            await using var transaction = context.Database.BeginTransaction();
-                                            await context.VaultAccounts.Upsert(vault.VaultAccount).RunAsync();
-                                            await context.VaultAddresses.Upsert(addressEntity).RunAsync();
-                                            await transaction.CommitAsync();
-
-                                            break;
+                                            vaultAddress = existing?.VaultAddress?.FirstOrDefault();
                                         }
-                                    default:
-                                        throw new ArgumentOutOfRangeException(nameof(fireblockAsset.AssetMapping.DepositType), fireblockAsset.AssetMapping.DepositType, null);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex,
-                                    "Unable to pre-generate address @{context}", new
-                                    {
-                                        asset.BrokerId,
-                                        asset.Symbol,
-                                        fireblockAsset.AssetMapping,
-                                    });
-                            }
 
-                        _logger.LogInformation(
-                            "Pre-generated addresses @{context}", new
-                            {
-                                Count = maxCount - entitiesCount,
-                                asset.BrokerId,
-                                asset.Symbol,
-                                fireblockAsset.AssetMapping.NetworkId,
-                            });
-                    }
+                                        if (vaultAddress == null)
+                                        {
+                                            _logger.LogError("Can't create fireblocks wallet @{context}", new { });
+                                            continue;
+                                        }
+
+
+                                        var addressEntity = new UserAddressEntity
+                                        {
+                                            Address = vaultAddress.Address,
+                                            AddressLowerCase = vaultAddress.Address.ToLowerInvariant(),
+                                            AssetNetwork = blockchain,
+                                            AssetSymbol = asset.Symbol,
+                                            Bip44AddressIndex = vaultAddress.Bip44AddressIndex,
+                                            AddressId = pregeneratedId,
+                                            EnterpriseAddress = vaultAddress.EnterpriseAddress,
+                                            FireblocksAssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
+                                            FireblocksVaultAccountId = fireblockAsset.AssetMapping.ActiveDepositAddessVaultAccountId,
+                                            Integration = Domain.Models.BlockchainIntegration.Fireblocks,
+                                            IsActive = true,
+                                            Status = Domain.Models.AddressStatus.New,
+                                            Tag = vaultAddress.Tag
+                                        };
+
+                                        await using var transaction = context.Database.BeginTransaction();
+                                        await context.VaultAccounts.Upsert(vault.VaultAccount).RunAsync();
+                                        await context.VaultAddresses.Upsert(addressEntity).RunAsync();
+                                        await transaction.CommitAsync();
+
+                                        break;
+                                    }
+                                default:
+                                    throw new ArgumentOutOfRangeException(nameof(fireblockAsset.AssetMapping.DepositType), fireblockAsset.AssetMapping.DepositType, null);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex,
+                                "Unable to pre-generate address @{context}", new
+                                {
+                                    asset.BrokerId,
+                                    asset.Symbol,
+                                    fireblockAsset.AssetMapping,
+                                });
+                        }
+
+                    _logger.LogInformation(
+                        "Pre-generated addresses @{context}", new
+                        {
+                            Count = maxCount - entitiesCount,
+                            asset.BrokerId,
+                            asset.Symbol,
+                            fireblockAsset.AssetMapping.NetworkId,
+                        });
                 }
             }
         }

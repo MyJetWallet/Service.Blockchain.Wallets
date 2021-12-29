@@ -60,52 +60,54 @@ namespace Service.Blockchain.Wallets.Services
                 Symbol = request.AssetSymbol
             };
 
-            var paymentSettings = _assetPaymentSettingsClient.GetAssetById(assetIdentity);
-            if (paymentSettings.Circle?.IsEnabledBlockchainDeposit == true &&
-                paymentSettings.Fireblocks?.IsEnabledDeposit == true)
-                return GetUserWalletResponse.CreateErrorResponse("There can be only one payment methos for asset.", Grpc.Models.ErrorCode.PaymentIsNotConfigured);
-
-            var asset = _assetsDictionaryClient.GetAssetById(assetIdentity);
-
-            if (asset == null)
-                return GetUserWalletResponse.CreateErrorResponse("Asset is not found", Grpc.Models.ErrorCode.AssetDoNotFound);
-
-            if (!asset.IsEnabled)
-                return GetUserWalletResponse.CreateErrorResponse("Asset is disabled", Grpc.Models.ErrorCode.AssetIsDisabled);
-
-            var blockchain = request.AssetNetwork;
-            if (blockchain == null)
+            try
             {
-                if (asset.DepositBlockchains.Count != 1)
+                var paymentSettings = _assetPaymentSettingsClient.GetAssetById(assetIdentity);
+                if (paymentSettings.Circle?.IsEnabledBlockchainDeposit == true &&
+                    paymentSettings.Fireblocks?.IsEnabledDeposit == true)
+                    return GetUserWalletResponse.CreateErrorResponse("There can be only one payment methos for asset.", Grpc.Models.ErrorCode.PaymentIsNotConfigured);
+
+                var asset = _assetsDictionaryClient.GetAssetById(assetIdentity);
+
+                if (asset == null)
+                    return GetUserWalletResponse.CreateErrorResponse("Asset is not found", Grpc.Models.ErrorCode.AssetDoNotFound);
+
+                if (!asset.IsEnabled)
+                    return GetUserWalletResponse.CreateErrorResponse("Asset is disabled", Grpc.Models.ErrorCode.AssetIsDisabled);
+
+                var blockchain = request.AssetNetwork;
+                if (blockchain == null)
                 {
-                    return GetUserWalletResponse.CreateErrorResponse("Blockchain is not configured",
-                        Grpc.Models.ErrorCode.BlockchainIsNotConfigured);
+                    if (asset.DepositBlockchains.Count != 1)
+                    {
+                        return GetUserWalletResponse.CreateErrorResponse("Blockchain is not configured",
+                            Grpc.Models.ErrorCode.BlockchainIsNotConfigured);
+                    }
+
+                    blockchain = asset.DepositBlockchains.First();
+                }
+                else
+                {
+                    if (!asset.DepositBlockchains.Contains(blockchain))
+                    {
+                        return GetUserWalletResponse.CreateErrorResponse("Blockchain is not supported",
+                            Grpc.Models.ErrorCode.BlockchainIsNotSupported);
+                    }
                 }
 
-                blockchain = asset.DepositBlockchains.First();
-            }
-            else
-            {
-                if (!asset.DepositBlockchains.Contains(blockchain))
+                var assetMapping = await _assetMappings.GetAsync(AssetMappingNoSql.GeneratePartitionKey(request.AssetSymbol),
+                    AssetMappingNoSql.GenerateRowKey(request.AssetNetwork));
+
+                await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+
+                UserAddressEntity addressEntity = await context.VaultAddresses.FirstOrDefaultAsync(x =>
+                x.AssetNetwork == request.AssetNetwork &&
+                x.AssetSymbol == request.AssetSymbol &&
+                x.WalletId == request.WalletId);
+
+                if (addressEntity == null)
                 {
-                    return GetUserWalletResponse.CreateErrorResponse("Blockchain is not supported",
-                        Grpc.Models.ErrorCode.BlockchainIsNotSupported);
-                }
-            }
-
-            var assetMapping = await _assetMappings.GetAsync(AssetMappingNoSql.GeneratePartitionKey(request.AssetSymbol),
-                AssetMappingNoSql.GenerateRowKey(request.AssetNetwork));
-
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
-
-            UserAddressEntity addressEntity = await context.VaultAddresses.FirstOrDefaultAsync(x =>
-            x.AssetNetwork == request.AssetNetwork &&
-            x.AssetSymbol == request.AssetSymbol &&
-            x.WalletId == request.WalletId);
-
-            if (addressEntity == null)
-            {
-                var assignQuery = $@"UPDATE ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} as upd
+                    var assignQuery = $@"UPDATE ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} as upd
                                       SET ""{nameof(UserAddressEntity.WalletId)}"" = @WalletId,
                                       ""{nameof(UserAddressEntity.ClientId)}"" = @ClientId,
                                       ""{nameof(UserAddressEntity.BrokerId)}"" = @BrokerId,
@@ -120,47 +122,62 @@ namespace Service.Blockchain.Wallets.Services
                                       FOR UPDATE SKIP LOCKED)
                                       RETURNING *;";
 
-                var addressEntities = await context.Database.GetDbConnection()
-                        .QueryAsync<UserAddressEntity>(assignQuery, new
+                    var addressEntities = await context.Database.GetDbConnection()
+                            .QueryAsync<UserAddressEntity>(assignQuery, new
+                            {
+                                WalletId = request.WalletId,
+                                ClientId = request.ClientId,
+                                BrokerId = request.BrokerId,
+                                AssetSymbol = request.AssetSymbol,
+                                AssetNetwork = request.AssetNetwork,
+                                Status = AddressStatus.Assigned,
+                            });
+
+                    //ERROR LOG: !!
+                    if (addressEntities.Count() != 1)
+                    {
+                        _logger.LogError("Can't get address for @{context}", new
                         {
-                            WalletId = request.WalletId,
-                            ClientId = request.ClientId,
-                            BrokerId = request.BrokerId,
-                            AssetSymbol = request.AssetSymbol,
-                            AssetNetwork = request.AssetNetwork,
-                            Status = AddressStatus.Assigned,
+                            Request = request,
+                            AddressEntities = addressEntities
                         });
 
-                //ERROR LOG: !!
-                if (addressEntities.Count() != 1)
-                {
-                    _logger.LogError("Can't get address for @{context}", new
-                    {
-                        Request = request,
-                        AddressEntities = addressEntities
-                    });
+                        return GetUserWalletResponse.CreateErrorResponse("Please, wait for address to be generated",
+                            Grpc.Models.ErrorCode.AddressPoolIsEmpty); ;
+                    }
 
-                    return GetUserWalletResponse.CreateErrorResponse("Please, wait for address to be generated",
-                        Grpc.Models.ErrorCode.AddressPoolIsEmpty); ;
+                    addressEntity = addressEntities.First();
                 }
 
-                addressEntity = addressEntities.First();
+                await _addressCache.InsertOrReplaceAsync(
+                    VaultAddressNoSql.Create(
+                        addressEntity.WalletId,
+                        addressEntity.AssetSymbol,
+                        addressEntity.AssetNetwork,
+                        MaptToDomain(addressEntity)));
+
+                return new GetUserWalletResponse
+                {
+                    AssetId = addressEntity.AssetSymbol,
+                    AssetNetworkId = addressEntity.AssetNetwork,
+                    UserId = request.WalletId,
+                    VaultAddress = MaptToDomain(addressEntity)
+                };
+
             }
-
-            await _addressCache.InsertOrReplaceAsync(
-                VaultAddressNoSql.Create(
-                    addressEntity.WalletId,
-                    addressEntity.AssetSymbol,
-                    addressEntity.AssetNetwork,
-                    MaptToDomain(addressEntity)));
-
-            return new GetUserWalletResponse
+            catch (Exception e)
             {
-                AssetId = addressEntity.AssetSymbol,
-                AssetNetworkId = addressEntity.AssetNetwork,
-                UserId = request.WalletId,
-                VaultAddress = MaptToDomain(addressEntity)
-            };
+                _logger.LogError(e, "Can't get/assign address for user: {@context}", request);
+
+                return new GetUserWalletResponse
+                {
+                    Error = new Grpc.Models.ErrorResponse
+                    {
+                        Error = e.Message,
+                        ErrorCode = Grpc.Models.ErrorCode.Unknown
+                    }
+                };
+            }
         }
 
         public async Task<GetUserByAddressResponse> GetUserByAddressAsync(GetUserByAddressRequest request)
@@ -169,7 +186,7 @@ namespace Service.Blockchain.Wallets.Services
             {
                 await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
 
-                var tuples = request.Addresses.Select(x => new 
+                var tuples = request.Addresses.Select(x => new
                 {
                     Address = x.Address.ToLowerInvariant(),
                     Tag = x.Tag,
