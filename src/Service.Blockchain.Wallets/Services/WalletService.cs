@@ -95,15 +95,6 @@ namespace Service.Blockchain.Wallets.Services
                     }
                 }
 
-                var assetMapping = await _assetMappings.GetAsync(AssetMappingNoSql.GeneratePartitionKey(request.AssetSymbol),
-                    AssetMappingNoSql.GenerateRowKey(request.AssetNetwork));
-
-                if (assetMapping == null || assetMapping.AssetMapping == null)
-                {
-                    return GetUserWalletResponse.CreateErrorResponse("Fireblocks asset is not configured",
-                            Grpc.Models.ErrorCode.AssetIsNotSupported);
-                }
-
                 await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
 
                 UserAddressEntity addressEntity = await context.VaultAddresses.FirstOrDefaultAsync(x =>
