@@ -64,8 +64,8 @@ namespace TestApp
             {
                 Addresses = new AddressAndTag[]
                 {
-                    new AddressAndTag{ Address = "0x1d2bde284ebb9c0c8e709d98984c53f843362eb5", Tag = "",},
-                    new AddressAndTag{ Address = "0x5a036b34148c438766195d3c61b2e0113804e714", Tag = "",},
+                    new AddressAndTag{ Address = "0x44bc49a035f5c4806d7aa803cc6754e06cfee92b", Tag = null,},
+                    //new AddressAndTag{ Address = "0x5a036b34148c438766195d3c61b2e0113804e714", Tag = "",},
                 }
             });
 
