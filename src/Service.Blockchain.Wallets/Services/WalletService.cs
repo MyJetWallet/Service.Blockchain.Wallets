@@ -54,6 +54,8 @@ namespace Service.Blockchain.Wallets.Services
 
         public async Task<GetUserWalletResponse> GetUserWalletAsync(GetUserWalletRequest request)
         {
+            _logger.LogInformation("Get user wallet {context}", request);
+
             var assetIdentity = new AssetIdentity()
             {
                 BrokerId = request.BrokerId,
@@ -179,6 +181,8 @@ namespace Service.Blockchain.Wallets.Services
 
         public async Task<GetUserByAddressResponse> GetUserByAddressAsync(GetUserByAddressRequest request)
         {
+            _logger.LogInformation("Get user address {context}", request);
+
             try
             {
                 await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);

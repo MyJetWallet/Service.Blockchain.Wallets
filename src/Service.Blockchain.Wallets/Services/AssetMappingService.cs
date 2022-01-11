@@ -25,6 +25,8 @@ namespace Service.Blockchain.Wallets.Services
         {
             try
             {
+                _logger.LogInformation("Deleting asset mapping {context}", request);
+
                 var mapping = await _assetMappings.DeleteAsync(AssetMappingNoSql.GeneratePartitionKey(request.AssetId),
                     AssetMappingNoSql.GeneratePartitionKey(request.AssetNetworkId));
 
@@ -48,6 +50,8 @@ namespace Service.Blockchain.Wallets.Services
         {
             try
             {
+                _logger.LogInformation("Get asset mapping {context}", request);
+
                 var mapping = await _assetMappings.GetAsync(AssetMappingNoSql.GeneratePartitionKey(request.AssetId),
                     AssetMappingNoSql.GeneratePartitionKey(request.AssetNetworkId));
 
@@ -74,6 +78,8 @@ namespace Service.Blockchain.Wallets.Services
         {
             try
             {
+                _logger.LogInformation("Upsert asset mapping {context}", request);
+
                 await _assetMappings.InsertOrReplaceAsync(AssetMappingNoSql.Create(request.AssetMapping));
 
                 return new UpsertAssetMappingResponse
