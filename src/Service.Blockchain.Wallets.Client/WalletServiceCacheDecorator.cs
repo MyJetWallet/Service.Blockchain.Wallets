@@ -1,5 +1,6 @@
 ﻿using MyNoSqlServer.Abstractions;
 using Service.Blockchain.Wallets.Grpc;
+using Service.Blockchain.Wallets.Grpc.Models.Addresses;
 using Service.Blockchain.Wallets.Grpc.Models.UserWallets;
 using Service.Blockchain.Wallets.MyNoSql.Addresses;
 using System.Threading.Tasks;
@@ -41,6 +42,11 @@ namespace Service.Blockchain.Wallets.Client
             var result = await _service.GetUserWalletAsync(request);
 
             return result;
+        }
+
+        public Task<ValidateAddressResponse> ValidateAddressAsync(ValidateAddressRequest request)
+        {
+            return _service.ValidateAddressAsync(request);
         }
     }
 }

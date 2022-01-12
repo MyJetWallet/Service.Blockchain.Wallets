@@ -18,16 +18,18 @@ using Service.Blockchain.Wallets.Postgres.Entities;
 using MyJetWallet.Circle.Settings.Services;
 using Service.Circle.Signer.Grpc;
 using Dapper;
-using static Service.Blockchain.Wallets.Grpc.Models.UserWallets.GetUserByAddressResponse;
 using System.Text;
 using System.Dynamic;
 using System.Collections.Generic;
+using Service.Blockchain.Wallets.Grpc.Models.Addresses;
+using static Service.Blockchain.Wallets.Grpc.Models.UserWallets.GetUserByAddressResponse;
 
 namespace Service.Blockchain.Wallets.Services
 {
     public class WalletService : IWalletService
     {
         private readonly ILogger<WalletService> _logger;
+        private readonly IVaultAccountService _vaultAccountService;
         private readonly IMyNoSqlServerDataWriter<VaultAddressNoSql> _addressCache;
         private readonly IMyNoSqlServerDataWriter<AssetMappingNoSql> _assetMappings;
         private readonly IAssetsDictionaryClient _assetsDictionaryClient;
@@ -45,11 +47,12 @@ namespace Service.Blockchain.Wallets.Services
             DbContextOptionsBuilder<DatabaseContext> dbContextOptionsBuilder)
         {
             _logger = logger;
-            this._addressCache = addressCache;
-            this._assetMappings = assetMappings;
-            this._assetsDictionaryClient = assetsDictionaryClient;
-            this._assetPaymentSettingsClient = assetPaymentSettingsClient;
-            this._dbContextOptionsBuilder = dbContextOptionsBuilder;
+            _vaultAccountService = vaultAccountService;
+            _addressCache = addressCache;
+            _assetMappings = assetMappings;
+            _assetsDictionaryClient = assetsDictionaryClient;
+            _assetPaymentSettingsClient = assetPaymentSettingsClient;
+            _dbContextOptionsBuilder = dbContextOptionsBuilder;
         }
 
         public async Task<GetUserWalletResponse> GetUserWalletAsync(GetUserWalletRequest request)
@@ -206,7 +209,8 @@ namespace Service.Blockchain.Wallets.Services
                         builder.Append($"(@Address{i}, @Tag{i}),");
                         parameter.Add($"Address{i}", tuples[i].Address);
                         parameter.Add($"Tag{i}", tuples[i].Tag);
-                    } else
+                    }
+                    else
                     {
                         builder.Append($"(@Address{i}),");
                         parameter.Add($"Address{i}", tuples[i].Address);
@@ -221,7 +225,8 @@ namespace Service.Blockchain.Wallets.Services
                 {
                     assignQuery = $@"SELECT * FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} 
                                   WHERE (""{nameof(UserAddressEntity.AddressLowerCase)}"", ""{nameof(UserAddressEntity.Tag)}"") in ({builder})";
-                } else
+                }
+                else
                 {
                     assignQuery = $@"SELECT * FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} 
                                   WHERE (""{nameof(UserAddressEntity.AddressLowerCase)}"") in ({builder})";
@@ -256,6 +261,106 @@ namespace Service.Blockchain.Wallets.Services
             }
         }
 
+        public async Task<ValidateAddressResponse> ValidateAddressAsync(ValidateAddressRequest request)
+        {
+            _logger.LogInformation("Validate address {context}", request);
+
+            var assetIdentity = new AssetIdentity()
+            {
+                BrokerId = request.BrokerId,
+                Symbol = request.AssetSymbol
+            };
+
+            try
+            {
+                var paymentSettings = _assetPaymentSettingsClient.GetAssetById(assetIdentity);
+                if (paymentSettings.Circle?.IsEnabledBlockchainDeposit == true &&
+                    paymentSettings.Fireblocks?.IsEnabledDeposit == true)
+                    return new ValidateAddressResponse()
+                    {
+                        Error = new Grpc.Models.ErrorResponse
+                        {
+                            Error = "There can be only one payment methos for asset.",
+                            ErrorCode = Grpc.Models.ErrorCode.PaymentIsNotConfigured,
+                        }
+                    };
+
+                var asset = _assetsDictionaryClient.GetAssetById(assetIdentity);
+
+                if (asset == null)
+                    return new ValidateAddressResponse()
+                    {
+                        Error = new Grpc.Models.ErrorResponse
+                        {
+                            Error = "Asset is not found",
+                            ErrorCode = Grpc.Models.ErrorCode.AssetDoNotFound,
+                        }
+                    };
+
+                if (!asset.IsEnabled)
+                    return new ValidateAddressResponse()
+                    {
+                        Error = new Grpc.Models.ErrorResponse
+                        {
+                            Error = "Asset is disabled",
+                            ErrorCode = Grpc.Models.ErrorCode.AssetIsDisabled,
+                        }
+                    };
+
+                if (paymentSettings.Fireblocks?.IsEnabledWithdrawal == true)
+                {
+                    var assetMapping = await _assetMappings.GetAsync(AssetMappingNoSql.GeneratePartitionKey(asset.Symbol),
+                        AssetMappingNoSql.GenerateRowKey(request.AssetNetwork));
+
+                    if (assetMapping == null)
+                    {
+                        return new ValidateAddressResponse()
+                        {
+                            Error = new Grpc.Models.ErrorResponse
+                            {
+                                Error = "Asset is not found",
+                                ErrorCode = Grpc.Models.ErrorCode.AssetDoNotFound,
+                            }
+                        };
+                    }
+
+                    var validationResponse = await _vaultAccountService.ValidateAddressAsync(new Fireblocks.Api.Grpc.Models.Addresses.ValidateAddressRequest
+                    {
+                        Address = request.Address,
+                        AssetId = assetMapping.AssetMapping.FireblocksAssetId
+                    });
+
+                    return new ValidateAddressResponse
+                    {
+                        Address = request.Address,
+                        IsValid = validationResponse.IsValid
+                    };
+                }
+                else if (paymentSettings.Circle?.IsEnabledBlockchainWithdrawal == true)
+                {
+                    //TODO:
+                }
+
+                return new ValidateAddressResponse
+                {
+                    Address = request.Address,
+                    IsValid = true,
+                };
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Can't get user for address {@context}", request);
+                return new ValidateAddressResponse
+                {
+                    Error = new Grpc.Models.ErrorResponse
+                    {
+                        Error = e.Message,
+                        ErrorCode = Grpc.Models.ErrorCode.Unknown
+                    }
+                };
+            }
+        }
+
         private static MyJetWallet.Fireblocks.Domain.Models.Addresses.VaultAddress MaptToDomain(UserAddressEntity userAddressEntity)
         {
             return new MyJetWallet.Fireblocks.Domain.Models.Addresses.VaultAddress
@@ -269,3 +374,5 @@ namespace Service.Blockchain.Wallets.Services
         }
     }
 }
+
+

@@ -1,5 +1,6 @@
 using System.ServiceModel;
 using System.Threading.Tasks;
+using Service.Blockchain.Wallets.Grpc.Models.Addresses;
 using Service.Blockchain.Wallets.Grpc.Models.UserWallets;
 
 namespace Service.Blockchain.Wallets.Grpc
@@ -12,5 +13,8 @@ namespace Service.Blockchain.Wallets.Grpc
 
         [OperationContract]
         Task<GetUserByAddressResponse> GetUserByAddressAsync(GetUserByAddressRequest request);
+
+        [OperationContract]
+        Task<ValidateAddressResponse> ValidateAddressAsync(ValidateAddressRequest request);
     }
 }
