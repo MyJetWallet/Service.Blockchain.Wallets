@@ -14,5 +14,8 @@ namespace Service.Blockchain.Wallets.Grpc.Models.Addresses
 
         [DataMember(Order = 3)]
         public ErrorResponse Error { get; set; }
+
+        [DataMember(Order = 4)]
+        public bool IsInternal { get; set; }
     }
 }

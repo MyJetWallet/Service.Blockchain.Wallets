@@ -169,7 +169,7 @@ namespace Service.Blockchain.Wallets.Services
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Can't get/assign address for user: {@context}", request);
+                _logger.LogError(e, "Can't get/assign address for user: {context}", request);
 
                 return new GetUserWalletResponse
                 {
@@ -188,8 +188,6 @@ namespace Service.Blockchain.Wallets.Services
 
             try
             {
-                await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
-
                 var tuples = request.Addresses.Select(x => new
                 {
                     Address = x.Address.ToLowerInvariant(),
@@ -231,7 +229,8 @@ namespace Service.Blockchain.Wallets.Services
                     assignQuery = $@"SELECT * FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} 
                                   WHERE (""{nameof(UserAddressEntity.AddressLowerCase)}"") in ({builder})";
                 }
-
+                
+                await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
                 var addressEntities = await context.Database.GetDbConnection()
                         .QueryAsync<UserAddressEntity>(assignQuery, (object)parameter);
 
@@ -249,7 +248,7 @@ namespace Service.Blockchain.Wallets.Services
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Can't get user for address {@context}", request);
+                _logger.LogError(e, "Can't get user for address {context}", request);
                 return new GetUserByAddressResponse
                 {
                     Error = new Grpc.Models.ErrorResponse
@@ -307,6 +306,20 @@ namespace Service.Blockchain.Wallets.Services
                         }
                     };
 
+                await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+                var addressLowCase = request.Address.ToLowerInvariant();
+                var addressEntities = await context.VaultAddresses.FirstOrDefaultAsync(x => x.AddressLowerCase == addressLowCase);
+
+                if (addressEntities != null)
+                {
+                    return new ValidateAddressResponse()
+                    {
+                        Address = addressEntities.Address,
+                        IsValid = true,
+                        IsInternal = true,
+                    };
+                }
+
                 if (paymentSettings.Fireblocks?.IsEnabledWithdrawal == true)
                 {
                     var assetMapping = await _assetMappings.GetAsync(AssetMappingNoSql.GeneratePartitionKey(asset.Symbol),
@@ -333,23 +346,26 @@ namespace Service.Blockchain.Wallets.Services
                     return new ValidateAddressResponse
                     {
                         Address = request.Address,
-                        IsValid = validationResponse.IsValid
+                        IsValid = validationResponse.IsValid,
+                        IsInternal = false,
                     };
                 }
                 else if (paymentSettings.Circle?.IsEnabledBlockchainWithdrawal == true)
                 {
                     //TODO:
+                    _logger.LogInformation("Can't validate circle address", request);
                 }
 
                 return new ValidateAddressResponse
                 {
                     Address = request.Address,
                     IsValid = true,
+                    IsInternal = false,
                 };
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Can't get user for address {@context}", request);
+                _logger.LogError(e, "Can't get user for address {context}", request);
                 return new ValidateAddressResponse
                 {
                     Error = new Grpc.Models.ErrorResponse
