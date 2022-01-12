@@ -57,10 +57,10 @@ namespace Service.Blockchain.Wallets.Job.Jobs
             _circleAssetSettingsService = circleAssetSettingsService;
             _blockchainMapper = blockchainMapper;
             _circleDepositAddressService = circleDepositAddressService;
-            this._fireblocksAssetMapping = fireblocksAssetMapping;
-            this._vaultAccountService = vaultAccountService;
-            this._settingsModel = settingsModel;
-            this._dbContextOptionsBuilder = dbContextOptionsBuilder;
+            _fireblocksAssetMapping = fireblocksAssetMapping;
+            _vaultAccountService = vaultAccountService;
+            _settingsModel = settingsModel;
+            _dbContextOptionsBuilder = dbContextOptionsBuilder;
             _timer = new MyTaskTimer(typeof(DepositAddressesGenerationJob),
                 TimeSpan.FromSeconds(int.Parse(_settingsModel.GenerateAddressesIntervalSec)),
                 logger, DoTime);
@@ -68,6 +68,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
 
         private async Task DoTime()
         {
+            _logger.LogInformation("START DEPOSIT ADDRESS GENERATION JOB!");
             var maxCount = int.Parse(_settingsModel.PreGeneratedAddressesCount);
             var circleAssets = await _circleAssetSettingsService.GetAllAssetMapsAsync();
             var fireblocksAssets = _fireblocksAssetMapping.Get();
@@ -323,7 +324,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                                             AddressId = pregeneratedId,
                                             EnterpriseAddress = vaultAddress.EnterpriseAddress,
                                             FireblocksAssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
-                                            FireblocksVaultAccountId = fireblockAsset.AssetMapping.ActiveDepositAddessVaultAccountId,
+                                            FireblocksVaultAccountId = vault.VaultAccount.Id,
                                             Integration = Domain.Models.BlockchainIntegration.Fireblocks,
                                             IsActive = true,
                                             Status = Domain.Models.AddressStatus.New,
