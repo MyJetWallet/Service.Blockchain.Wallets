@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using MyJetWallet.Circle.Settings.Services;
 using MyJetWallet.Domain.Assets;
 using MyJetWallet.Fireblocks.Domain.Models.Addresses;
+using MyJetWallet.Sdk.Service;
 using MyJetWallet.Sdk.Service.Tools;
 using MyNoSqlServer.Abstractions;
 using Service.AssetsDictionary.Client;
@@ -18,6 +19,7 @@ using Service.Blockchain.Wallets.Postgres.Entities;
 using Service.Circle.Signer.Grpc;
 using Service.Circle.Signer.Grpc.Models;
 using Service.Fireblocks.Api.Grpc;
+using Service.Fireblocks.Api.Grpc.Models.Addresses;
 
 // ReSharper disable InconsistentLogPropertyNaming
 
@@ -197,23 +199,25 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                     for (var i = 1; i <= maxCount - entitiesCount; i++)
                         try
                         {
-                            var pregeneratedId = Guid.NewGuid().ToString();
+                            var pregeneratedId = Guid.NewGuid().ToString("N") + fireblockAsset.AssetMapping.FireblocksAssetId;
                             //var label = $"PreGenerated-{id}";
                             switch (fireblockAsset.AssetMapping.DepositType)
                             {
                                 case MyJetWallet.Fireblocks.Domain.Models.AssetMappngs.DepositType.Broker:
                                     {
-                                        var vaultAddress = await _vaultAccountService.CreateVaultAddressAsync(new()
+                                        var createVaultRequest = new CreateVaultAddressRequest()
                                         {
                                             AssetId = fireblockAsset.AssetMapping.FireblocksAssetId,
                                             CustomerRefId = pregeneratedId,
                                             Name = pregeneratedId,
                                             VaultAccountId = fireblockAsset.AssetMapping.ActiveDepositAddessVaultAccountId
-                                        });
+                                        };
+
+                                        var vaultAddress = await _vaultAccountService.CreateVaultAddressAsync(createVaultRequest);
 
                                         if (vaultAddress.Error != null)
                                         {
-                                            _logger.LogError("Can't create fireblocks wallet @{context}", new { });
+                                            _logger.LogError("Can't create fireblocks wallet {context}", createVaultRequest.ToJson());
                                             continue;
                                         }
 
@@ -251,7 +255,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
 
                                         if (vault.Error != null)
                                         {
-                                            _logger.LogError("Can't create fireblocks wallet @{context}", new { });
+                                            _logger.LogError("Can't create fireblocks wallet {context}", vault.Error.ToJson());
                                             continue;
                                         }
 
@@ -278,7 +282,10 @@ namespace Service.Blockchain.Wallets.Job.Jobs
 
                                         if (vaultAddress == null)
                                         {
-                                            _logger.LogError("Can't create fireblocks wallet @{context}", new { });
+                                            _logger.LogError("Can't create fireblocks wallet {context}", (new 
+                                            {
+                                                fireblockAsset.AssetMapping.FireblocksAssetId
+                                            }).ToJson());
                                             continue;
                                         }
 
@@ -314,7 +321,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                         catch (Exception ex)
                         {
                             _logger.LogError(ex,
-                                "Unable to pre-generate address @{context}", new
+                                "Unable to pre-generate address {context}", new
                                 {
                                     asset.BrokerId,
                                     asset.Symbol,
@@ -323,7 +330,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                         }
 
                     _logger.LogInformation(
-                        "Pre-generated addresses @{context}", new
+                        "Pre-generated addresses {context}", new
                         {
                             Count = maxCount - entitiesCount,
                             asset.BrokerId,
