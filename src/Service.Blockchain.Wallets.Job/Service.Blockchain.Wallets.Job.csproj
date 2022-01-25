@@ -24,7 +24,7 @@
     <PackageReference Include="MyJetWallet.Service.AssetsDictionary.Client" Version="1.10.3" />
     <PackageReference Include="MyJetWallet.Service.Circle.Signer.Client" Version="2.1.0" />
     <PackageReference Include="MyJetWallet.Service.Circle.Wallets.Client" Version="2.1.0" />
-    <PackageReference Include="MyJetWallet.Service.Fireblocks.Api.Client" Version="1.0.3" />
+    <PackageReference Include="MyJetWallet.Service.Fireblocks.Api.Client" Version="1.1.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="5.0.2" />
     <PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="1.0.152" />
