@@ -20,7 +20,7 @@
     <PackageReference Include="MyJetWallet.Sdk.GrpcMetrics" Version="2.0.4" />
     <PackageReference Include="MyJetWallet.Sdk.GrpcSchema" Version="1.0.6" />
     <PackageReference Include="MyJetWallet.Sdk.NoSql" Version="2.0.2" />
-    <PackageReference Include="MyJetWallet.Sdk.Service" Version="2.1.6" />
+    <PackageReference Include="MyJetWallet.Sdk.Service" Version="2.1.7" />
     <PackageReference Include="MyJetWallet.Service.AssetsDictionary.Client" Version="2.5.0" />
     <PackageReference Include="MyJetWallet.Service.Circle.Signer.Client" Version="2.1.0" />
     <PackageReference Include="MyJetWallet.Service.Circle.Wallets.Client" Version="2.1.0" />
