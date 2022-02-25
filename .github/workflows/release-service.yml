@@ -15,6 +15,9 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 6.0.*
+        source-url: https://nuget.pkg.github.com/myjetwallet/index.json
+      env:
+        NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
     - name: Get current time
       uses: MyJetTools/get-current-time@v2
@@ -22,6 +25,9 @@ jobs:
       with:
         format: YYYY-MM-DD HH:mm:ss
         utcOffset: "+00:00"
+
+    - name: Source
+      run: dotnet nuget add source --username ${{ secrets.NgetSource_user }} --password ${{ secrets.NgetSource_token }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/MyJetWallet/index.json"
 
     - name: Build
       run: dotnet build --configuration Release /p:AssemblyVersion=${GITHUB_REF#refs/tags/}
