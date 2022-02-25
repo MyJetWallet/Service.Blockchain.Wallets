@@ -10,7 +10,7 @@ namespace Service.Blockchain.Wallets.Client
 {
     public static class AutofacHelper
     {
-        public static void RegisterBlockchainWalletsClient(this ContainerBuilder builder, string grpcServiceUrl, MyNoSqlTcpClient tcpClient)
+        public static void RegisterBlockchainWalletsClient(this ContainerBuilder builder, string grpcServiceUrl, IMyNoSqlSubscriber tcpClient)
         {
             var factory = new BlockchainWalletsClientFactory(grpcServiceUrl);
 
