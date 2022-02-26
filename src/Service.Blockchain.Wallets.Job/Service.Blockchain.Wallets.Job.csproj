@@ -10,7 +10,7 @@
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="7.2.0" />
     <PackageReference Include="Dapper" Version="2.0.123" />
     <PackageReference Include="FlexLabs.EntityFrameworkCore.Upsert" Version="6.0.1" />
-    <PackageReference Include="Grpc.AspNetCore" Version="2.42.0" />
+    <PackageReference Include="Grpc.AspNetCore" Version="2.43.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2021.3.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
@@ -23,8 +23,8 @@
     <PackageReference Include="MyJetWallet.Sdk.Service" Version="2.1.7" />
     <PackageReference Include="MyJetWallet.Service.AssetsDictionary.Client" Version="2.7.1" />
     <PackageReference Include="MyJetWallet.Service.Circle.Signer.Client" Version="2.2.2" />
-    <PackageReference Include="MyJetWallet.Service.Circle.Wallets.Client" Version="2.2.2" />
-    <PackageReference Include="MyJetWallet.Service.Fireblocks.Api.Client" Version="1.4.2" />
+    <PackageReference Include="MyJetWallet.Service.Circle.Wallets.Client" Version="2.2.3" />
+    <PackageReference Include="MyJetWallet.Service.Fireblocks.Api.Client" Version="1.4.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="5.0.2" />
     <PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="1.0.152" />
