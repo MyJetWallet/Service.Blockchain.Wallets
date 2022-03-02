@@ -22,7 +22,7 @@
     <PackageReference Include="MyJetWallet.Sdk.NoSql" Version="2.1.2" />
     <PackageReference Include="MyJetWallet.Sdk.Service" Version="2.1.7" />
     <PackageReference Include="MyJetWallet.Service.AssetsDictionary.Client" Version="2.7.1" />
-    <PackageReference Include="MyJetWallet.Service.Circle.Signer.Client" Version="2.3.0" />
+    <PackageReference Include="MyJetWallet.Service.Circle.Signer.Client" Version="2.3.2" />
     <PackageReference Include="MyJetWallet.Service.Circle.Wallets.Client" Version="2.2.4" />
     <PackageReference Include="MyJetWallet.Service.Fireblocks.Api.Client" Version="1.4.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
