@@ -26,9 +26,6 @@ jobs:
         format: YYYY-MM-DD HH:mm:ss
         utcOffset: "+00:00"
 
-    - name: Source
-      run: dotnet nuget add source --username ${{ secrets.NgetSource_user }} --password ${{ secrets.NgetSource_token }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/MyJetWallet/index.json"
-
     - name: Build
       run: dotnet build --configuration Release /p:AssemblyVersion=${GITHUB_REF#refs/tags/}
     - name: Test
