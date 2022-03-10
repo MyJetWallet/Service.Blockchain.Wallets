@@ -23,6 +23,7 @@ using System.Dynamic;
 using System.Collections.Generic;
 using Service.Blockchain.Wallets.Grpc.Models.Addresses;
 using static Service.Blockchain.Wallets.Grpc.Models.UserWallets.GetUserByAddressResponse;
+using MyJetWallet.Sdk.Service;
 
 namespace Service.Blockchain.Wallets.Services
 {
@@ -57,7 +58,7 @@ namespace Service.Blockchain.Wallets.Services
 
         public async Task<GetUserWalletResponse> GetUserWalletAsync(GetUserWalletRequest request)
         {
-            _logger.LogInformation("Get user wallet {context}", request);
+            _logger.LogInformation("Get user wallet {context}", request.ToJson());
 
             var assetIdentity = new AssetIdentity()
             {
@@ -140,8 +141,8 @@ namespace Service.Blockchain.Wallets.Services
                     {
                         _logger.LogError("Can't get address for @{context}", new
                         {
-                            Request = request,
-                            AddressEntities = addressEntities
+                            Request = request.ToJson(),
+                            AddressEntities = addressEntities.ToJson()
                         });
 
                         return GetUserWalletResponse.CreateErrorResponse("Please, wait for address to be generated",
@@ -169,7 +170,7 @@ namespace Service.Blockchain.Wallets.Services
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Can't get/assign address for user: {context}", request);
+                _logger.LogError(e, "Can't get/assign address for user: {context}", request.ToJson());
 
                 return new GetUserWalletResponse
                 {
@@ -184,7 +185,7 @@ namespace Service.Blockchain.Wallets.Services
 
         public async Task<GetUserByAddressResponse> GetUserByAddressAsync(GetUserByAddressRequest request)
         {
-            _logger.LogInformation("Get user address {context}", request);
+            _logger.LogInformation("Get user address {context}", request.ToJson());
 
             try
             {
@@ -248,7 +249,7 @@ namespace Service.Blockchain.Wallets.Services
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Can't get user for address {context}", request);
+                _logger.LogError(e, "Can't get user for address {context}", request.ToJson());
                 return new GetUserByAddressResponse
                 {
                     Error = new Grpc.Models.ErrorResponse
@@ -262,7 +263,7 @@ namespace Service.Blockchain.Wallets.Services
 
         public async Task<ValidateAddressResponse> ValidateAddressAsync(ValidateAddressRequest request)
         {
-            _logger.LogInformation("Validate address {context}", request);
+            _logger.LogInformation("Validate address {context}", request.ToJson());
 
             var assetIdentity = new AssetIdentity()
             {
@@ -353,7 +354,7 @@ namespace Service.Blockchain.Wallets.Services
                 else if (paymentSettings.Circle?.IsEnabledBlockchainWithdrawal == true)
                 {
                     //TODO:
-                    _logger.LogInformation("Can't validate circle address", request);
+                    _logger.LogInformation("Can't validate circle address", request.ToJson());
                 }
 
                 return new ValidateAddressResponse
@@ -365,7 +366,7 @@ namespace Service.Blockchain.Wallets.Services
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Can't get user for address {context}", request);
+                _logger.LogError(e, "Can't get user for address {context}", request.ToJson());
                 return new ValidateAddressResponse
                 {
                     Error = new Grpc.Models.ErrorResponse

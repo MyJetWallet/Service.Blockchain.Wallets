@@ -6,6 +6,7 @@ using Service.Fireblocks.Api.Grpc;
 using Service.Blockchain.Wallets.Grpc;
 using Service.Blockchain.Wallets.Grpc.Models.AssetMappings;
 using Service.Blockchain.Wallets.MyNoSql.AssetsMappings;
+using MyJetWallet.Sdk.Service;
 
 namespace Service.Blockchain.Wallets.Services
 {
@@ -25,7 +26,7 @@ namespace Service.Blockchain.Wallets.Services
         {
             try
             {
-                _logger.LogInformation("Deleting asset mapping {context}", request);
+                _logger.LogInformation("Deleting asset mapping {context}", request.ToJson());
 
                 var mapping = await _assetMappings.DeleteAsync(AssetMappingNoSql.GeneratePartitionKey(request.AssetId),
                     AssetMappingNoSql.GeneratePartitionKey(request.AssetNetworkId));
@@ -34,7 +35,7 @@ namespace Service.Blockchain.Wallets.Services
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error during AssetMapping delete: @{context}", request);
+                _logger.LogError(e, "Error during AssetMapping delete: @{context}", request.ToJson());
                 return new DeleteAssetMappingResponse
                 {
                     Error = new Grpc.Models.ErrorResponse
@@ -50,7 +51,7 @@ namespace Service.Blockchain.Wallets.Services
         {
             try
             {
-                _logger.LogInformation("Get asset mapping {context}", request);
+                _logger.LogInformation("Get asset mapping {context}", request.ToJson());
 
                 var mapping = await _assetMappings.GetAsync(AssetMappingNoSql.GeneratePartitionKey(request.AssetId),
                     AssetMappingNoSql.GeneratePartitionKey(request.AssetNetworkId));
@@ -62,7 +63,7 @@ namespace Service.Blockchain.Wallets.Services
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error during AssetMapping get: @{context}", request);
+                _logger.LogError(e, "Error during AssetMapping get: @{context}", request.ToJson());
                 return new GetAssetMappingResponse
                 {
                     Error = new Grpc.Models.ErrorResponse
@@ -78,7 +79,7 @@ namespace Service.Blockchain.Wallets.Services
         {
             try
             {
-                _logger.LogInformation("Upsert asset mapping {context}", request);
+                _logger.LogInformation("Upsert asset mapping {context}", request.ToJson());
 
                 await _assetMappings.InsertOrReplaceAsync(AssetMappingNoSql.Create(request.AssetMapping));
 
@@ -89,7 +90,7 @@ namespace Service.Blockchain.Wallets.Services
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error during AssetMapping upsert: @{context}", request);
+                _logger.LogError(e, "Error during AssetMapping upsert: @{context}", request.ToJson());
                 return new UpsertAssetMappingResponse
                 {
                     Error = new Grpc.Models.ErrorResponse
