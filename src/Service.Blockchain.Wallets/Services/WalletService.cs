@@ -139,11 +139,11 @@ namespace Service.Blockchain.Wallets.Services
                     //ERROR LOG: !!
                     if (addressEntities.Count() != 1)
                     {
-                        _logger.LogError("Can't get address for @{context}", new
+                        _logger.LogError("Can't get address for {context}", new
                         {
-                            Request = request.ToJson(),
-                            AddressEntities = addressEntities.ToJson()
-                        });
+                            Request = request,
+                            AddressEntities = addressEntities
+                        }.ToJson());
 
                         return GetUserWalletResponse.CreateErrorResponse("Please, wait for address to be generated",
                             Grpc.Models.ErrorCode.AddressPoolIsEmpty); ;
