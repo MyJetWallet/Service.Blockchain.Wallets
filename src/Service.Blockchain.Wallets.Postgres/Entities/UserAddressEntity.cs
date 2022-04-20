@@ -42,5 +42,7 @@ namespace Service.Blockchain.Wallets.Postgres.Entities
         public DateTime CreatedAt { get; set; }
 
         public DateTime UpdatedAt { get; set; }
+
+        public long SignatureSetUnixTime { get; set; }
     }
 }

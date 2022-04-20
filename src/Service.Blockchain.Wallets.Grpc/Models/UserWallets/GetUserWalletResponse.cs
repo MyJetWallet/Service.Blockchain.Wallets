@@ -29,7 +29,7 @@ namespace Service.Blockchain.Wallets.Grpc.Models.UserWallets
         public string BrokerId { get; set; }
 
         [DataMember(Order = 7)]
-        public DateTime CreatedAt { get; set; }
+        public long SignatureIssuedAt { get; set; }
 
         [DataMember(Order = 8)]
         public string SigningKeyId { get; set; }

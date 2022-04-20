@@ -40,7 +40,7 @@ namespace Service.Blockchain.Wallets.Client
                     Signature= cache.Signature,
                     BrokerId = cache.BrokerId,
                     ClientId = cache.ClientId,
-                    CreatedAt = cache.CreatedAt,
+                    SignatureIssuedAt = cache.SignatureIssuedAt,
                 };
             }
 

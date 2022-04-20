@@ -25,7 +25,7 @@ namespace Service.Blockchain.Wallets.MyNoSql.Addresses
 
         public string ClientId { get; set; }
         public string BrokerId { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public long SignatureIssuedAt { get; set; }
         public string SigningKeyId { get; set; }
         public string Signature { get; set; }
 
@@ -36,7 +36,7 @@ namespace Service.Blockchain.Wallets.MyNoSql.Addresses
             VaultAddress vaultAddress,
             string clientId,
             string brokerId,
-            DateTime createdAt,
+            long signatureIssuedAt,
             string signingKeyId,
             string signature)
         {
@@ -44,7 +44,7 @@ namespace Service.Blockchain.Wallets.MyNoSql.Addresses
             {
                 ClientId = clientId,
                 BrokerId = brokerId,
-                CreatedAt = createdAt,
+                SignatureIssuedAt = signatureIssuedAt,
                 PartitionKey = GeneratePartitionKey(userId),
                 RowKey = GenerateRowKey(assetSymbol, assetNetwork),
                 AssetSymbol = assetSymbol,

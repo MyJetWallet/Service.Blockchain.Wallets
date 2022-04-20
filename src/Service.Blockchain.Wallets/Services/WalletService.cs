@@ -164,7 +164,7 @@ namespace Service.Blockchain.Wallets.Services
                 if (addressEntity.Status == AddressStatus.WaitingForSignature)
                 {
 
-                    var privateKey = _apiKeyStorage.Get(Program.Settings.SignaturePrivateApiKeyId);
+                    var privateKey = _apiKeyStorage.Get(Program.Settings.WalletSignaturePrivateApiKeyId);
 
                     if (privateKey == null)
                     {
@@ -180,6 +180,8 @@ namespace Service.Blockchain.Wallets.Services
                         };
                     }
 
+                    addressEntity.SignatureSetUnixTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
                     var signatureComponents = WalletSignatureComponents.Create(
                         request.WalletId,
                         request.ClientId,
@@ -188,7 +190,7 @@ namespace Service.Blockchain.Wallets.Services
                         request.AssetNetwork,
                         addressEntity.Address,
                         addressEntity.Tag,
-                        addressEntity.CreatedAt);
+                        addressEntity.SignatureSetUnixTime);
 
                     var signatureContent = signatureComponents.GetSignatureContent();
 
@@ -196,7 +198,7 @@ namespace Service.Blockchain.Wallets.Services
                         signatureContent,
                         AsymmetricEncryptionUtils.ReadPrivateKeyFromPem(privateKey.PrivateKeyValue));
 
-                    addressEntity.SigningKeyId = Program.Settings.SignaturePrivateApiKeyId;
+                    addressEntity.SigningKeyId = Program.Settings.WalletSignaturePrivateApiKeyId;
                     addressEntity.Signature = signature;
                     addressEntity.Status = AddressStatus.Assigned;
                     addressEntity.UpdatedAt = DateTime.UtcNow;
@@ -213,7 +215,7 @@ namespace Service.Blockchain.Wallets.Services
                         MaptToDomain(addressEntity),
                         addressEntity.ClientId,
                         addressEntity.BrokerId,
-                        addressEntity.CreatedAt,
+                        addressEntity.SignatureSetUnixTime,
                         addressEntity.SigningKeyId,
                         addressEntity.Signature));
 
@@ -222,7 +224,12 @@ namespace Service.Blockchain.Wallets.Services
                     AssetId = addressEntity.AssetSymbol,
                     AssetNetworkId = addressEntity.AssetNetwork,
                     UserId = request.WalletId,
-                    VaultAddress = MaptToDomain(addressEntity)
+                    VaultAddress = MaptToDomain(addressEntity),
+                    BrokerId = addressEntity.BrokerId,
+                    ClientId = addressEntity.ClientId,
+                    Signature = addressEntity.Signature,
+                    SignatureIssuedAt = addressEntity.SignatureSetUnixTime,
+                    SigningKeyId = addressEntity.SigningKeyId,
                 };
 
             }
@@ -250,7 +257,7 @@ namespace Service.Blockchain.Wallets.Services
                 var tuples = request.Addresses.Select(x => new
                 {
                     Address = x.Address.ToLowerInvariant(),
-                    Tag = x.Tag,
+                    Tag = x.Tag ?? String.Empty,
                 }).ToArray();
 
 
