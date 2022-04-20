@@ -118,11 +118,11 @@ namespace Service.Blockchain.Wallets.Services
                 if (addressEntity == null)
                 {
                     var assignQuery = $@"UPDATE ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} as upd
-                                      SET ""{nameof(UserAddressEntity.WalletId)}"" = @WalletId,
-                                      ""{nameof(UserAddressEntity.ClientId)}"" = @ClientId,
-                                      ""{nameof(UserAddressEntity.BrokerId)}"" = @BrokerId,
-                                      ""{nameof(UserAddressEntity.Status)}"" = @Status,
-                                      ""{nameof(UserAddressEntity.UpdatedAt)}"" = @UpdatedAt,
+                                      SET ""{nameof(UserAddressEntity.WalletId)}"" = @WalletId, 
+                                      ""{nameof(UserAddressEntity.ClientId)}"" = @ClientId, 
+                                      ""{nameof(UserAddressEntity.BrokerId)}"" = @BrokerId, 
+                                      ""{nameof(UserAddressEntity.Status)}"" = @Status, 
+                                      ""{nameof(UserAddressEntity.UpdatedAt)}"" = @UpdatedAt 
                                       WHERE upd.""{nameof(UserAddressEntity.AddressId)}"" = (SELECT addr.""{nameof(UserAddressEntity.AddressId)}""
                                       FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} as addr 
                                       WHERE addr.""{nameof(UserAddressEntity.WalletId)}"" is null and

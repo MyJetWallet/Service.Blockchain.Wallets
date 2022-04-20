@@ -92,9 +92,9 @@ namespace TestApp
             {
                 AssetSymbol = "ETH",
                 AssetNetwork = "fireblocks-eth-test",
-                WalletId = "Test",
+                WalletId = "Test12",
                 BrokerId = "jetwallet",
-                ClientId = "Test",
+                ClientId = "Test12",
             });
 
             var resp2 = await client.GetUserWalletAsync(new()
