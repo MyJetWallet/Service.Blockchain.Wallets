@@ -17,6 +17,7 @@ using SimpleTrading.BaseMetrics;
 using SimpleTrading.ServiceStatusReporterConnector;
 using Service.Blockchain.Wallets.Postgres;
 using MyJetWallet.Sdk.Postgres;
+using MyJetWallet.ApiSecurityManager.Autofac;
 
 namespace Service.Blockchain.Wallets
 {
@@ -54,6 +55,8 @@ namespace Service.Blockchain.Wallets
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.RegisterGrpcServices();
+
                 endpoints.MapGrpcSchema<WalletService, IWalletService>();
 
                 endpoints.MapGrpcSchema<AssetMappingService, IAssetMappingService>();

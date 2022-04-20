@@ -36,5 +36,11 @@ namespace Service.Blockchain.Wallets.Postgres.Entities
         public string FireblocksAssetId { get; set; }
         public string FireblocksVaultAccountId { get; set; }
         public string CircleWalletId { get; set; }
+        public string SigningKeyId { get; set; }
+        public string Signature { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+
+        public DateTime UpdatedAt { get; set; }
     }
 }

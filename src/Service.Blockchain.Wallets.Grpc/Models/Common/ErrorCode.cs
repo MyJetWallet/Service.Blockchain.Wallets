@@ -9,6 +9,7 @@
         BlockchainIsNotSupported,
         PaymentIsNotConfigured,
         AssetIsNotSupported,
-        AddressPoolIsEmpty
+        AddressPoolIsEmpty,
+        NoKey
     }
 }

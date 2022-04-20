@@ -9,6 +9,7 @@ using Service.Blockchain.Wallets.MyNoSql.AssetsMappings;
 using Service.Circle.Signer.Client;
 using Service.Circle.Wallets.Client;
 using MyJetWallet.Circle.Settings.Ioc;
+using MyJetWallet.ApiSecurityManager.Autofac;
 
 namespace Service.Blockchain.Wallets.Modules
 {
@@ -16,6 +17,7 @@ namespace Service.Blockchain.Wallets.Modules
     {
         protected override void Load(ContainerBuilder builder)
         {
+            builder.RegisterEncryptionServiceClient();
             var myNoSqlClient = builder.CreateNoSqlClient(Program.ReloadedSettings(e => e.MyNoSqlReaderHostPort));
             builder.RegisterFireblocksApiClient(Program.Settings.FireblocksApiUrl);
             builder.RegisterMyNoSqlWriter<AssetMappingNoSql>(() => Program.Settings.MyNoSqlWriterUrl, AssetMappingNoSql.TableName);

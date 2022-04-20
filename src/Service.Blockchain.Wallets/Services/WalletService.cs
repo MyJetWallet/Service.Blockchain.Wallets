@@ -24,6 +24,9 @@ using System.Collections.Generic;
 using Service.Blockchain.Wallets.Grpc.Models.Addresses;
 using static Service.Blockchain.Wallets.Grpc.Models.UserWallets.GetUserByAddressResponse;
 using MyJetWallet.Sdk.Service;
+using MyJetWallet.ApiSecurityManager.AsymmetricEncryption;
+using MyJetWallet.ApiSecurityManager.ApiKeys;
+using MyJetWallet.ApiSecurityManager.WalletSignature;
 
 namespace Service.Blockchain.Wallets.Services
 {
@@ -36,6 +39,8 @@ namespace Service.Blockchain.Wallets.Services
         private readonly IAssetsDictionaryClient _assetsDictionaryClient;
         private readonly IAssetPaymentSettingsClient _assetPaymentSettingsClient;
         private readonly DbContextOptionsBuilder<DatabaseContext> _dbContextOptionsBuilder;
+        private readonly IAsymmetricEncryptionService _asymmetricEncryptionService;
+        private readonly IApiKeyStorage _apiKeyStorage;
 
         public WalletService(ILogger<WalletService> logger,
             IVaultAccountService vaultAccountService,
@@ -43,9 +48,9 @@ namespace Service.Blockchain.Wallets.Services
             IMyNoSqlServerDataWriter<AssetMappingNoSql> assetMappings,
             IAssetsDictionaryClient assetsDictionaryClient,
             IAssetPaymentSettingsClient assetPaymentSettingsClient,
-            ICircleAssetMapper circleAssetMapper,
-            ICircleDepositAddressService circleDepositAddressService,
-            DbContextOptionsBuilder<DatabaseContext> dbContextOptionsBuilder)
+            DbContextOptionsBuilder<DatabaseContext> dbContextOptionsBuilder,
+            IAsymmetricEncryptionService asymmetricEncryptionService,
+            IApiKeyStorage apiKeyStorage)
         {
             _logger = logger;
             _vaultAccountService = vaultAccountService;
@@ -54,6 +59,8 @@ namespace Service.Blockchain.Wallets.Services
             _assetsDictionaryClient = assetsDictionaryClient;
             _assetPaymentSettingsClient = assetPaymentSettingsClient;
             _dbContextOptionsBuilder = dbContextOptionsBuilder;
+            _asymmetricEncryptionService = asymmetricEncryptionService;
+            _apiKeyStorage = apiKeyStorage;
         }
 
         public async Task<GetUserWalletResponse> GetUserWalletAsync(GetUserWalletRequest request)
@@ -114,7 +121,8 @@ namespace Service.Blockchain.Wallets.Services
                                       SET ""{nameof(UserAddressEntity.WalletId)}"" = @WalletId,
                                       ""{nameof(UserAddressEntity.ClientId)}"" = @ClientId,
                                       ""{nameof(UserAddressEntity.BrokerId)}"" = @BrokerId,
-                                      ""{nameof(UserAddressEntity.Status)}"" = @Status
+                                      ""{nameof(UserAddressEntity.Status)}"" = @Status,
+                                      ""{nameof(UserAddressEntity.UpdatedAt)}"" = @UpdatedAt,
                                       WHERE upd.""{nameof(UserAddressEntity.AddressId)}"" = (SELECT addr.""{nameof(UserAddressEntity.AddressId)}""
                                       FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} as addr 
                                       WHERE addr.""{nameof(UserAddressEntity.WalletId)}"" is null and
@@ -133,7 +141,8 @@ namespace Service.Blockchain.Wallets.Services
                                 BrokerId = request.BrokerId,
                                 AssetSymbol = request.AssetSymbol,
                                 AssetNetwork = request.AssetNetwork,
-                                Status = AddressStatus.Assigned,
+                                Status = AddressStatus.WaitingForSignature,
+                                UpdatedAt = DateTime.UtcNow,
                             });
 
                     //ERROR LOG: !!
@@ -152,12 +161,61 @@ namespace Service.Blockchain.Wallets.Services
                     addressEntity = addressEntities.First();
                 }
 
+                if (addressEntity.Status == AddressStatus.WaitingForSignature)
+                {
+
+                    var privateKey = _apiKeyStorage.Get(Program.Settings.SignaturePrivateApiKeyId);
+
+                    if (privateKey == null)
+                    {
+                        _logger.LogError("Can't get/assign address for user, NO PRIVATE KEY FOR SIGNATURE: {context}", request.ToJson());
+
+                        return new GetUserWalletResponse
+                        {
+                            Error = new Grpc.Models.ErrorResponse
+                            {
+                                Error = "NO PRIVATE KEY FOR SIGNATURE",
+                                ErrorCode = Grpc.Models.ErrorCode.NoKey
+                            }
+                        };
+                    }
+
+                    var signatureComponents = WalletSignatureComponents.Create(
+                        request.WalletId,
+                        request.ClientId,
+                        request.BrokerId,
+                        request.AssetSymbol,
+                        request.AssetNetwork,
+                        addressEntity.Address,
+                        addressEntity.Tag,
+                        addressEntity.CreatedAt);
+
+                    var signatureContent = signatureComponents.GetSignatureContent();
+
+                    var signature = _asymmetricEncryptionService.Sign(
+                        signatureContent,
+                        AsymmetricEncryptionUtils.ReadPrivateKeyFromPem(privateKey.PrivateKeyValue));
+
+                    addressEntity.SigningKeyId = Program.Settings.SignaturePrivateApiKeyId;
+                    addressEntity.Signature = signature;
+                    addressEntity.Status = AddressStatus.Assigned;
+                    addressEntity.UpdatedAt = DateTime.UtcNow;
+                    context.VaultAddresses.Update(addressEntity);
+
+                    await context.SaveChangesAsync();
+                }
+
                 await _addressCache.InsertOrReplaceAsync(
                     VaultAddressNoSql.Create(
                         addressEntity.WalletId,
                         addressEntity.AssetSymbol,
                         addressEntity.AssetNetwork,
-                        MaptToDomain(addressEntity)));
+                        MaptToDomain(addressEntity),
+                        addressEntity.ClientId,
+                        addressEntity.BrokerId,
+                        addressEntity.CreatedAt,
+                        addressEntity.SigningKeyId,
+                        addressEntity.Signature));
 
                 return new GetUserWalletResponse
                 {
@@ -196,41 +254,41 @@ namespace Service.Blockchain.Wallets.Services
                 }).ToArray();
 
 
-                var useTags = tuples.Any(x => !string.IsNullOrEmpty(x.Tag));
+                //var useTags = tuples.Any(x => !string.IsNullOrEmpty(x.Tag));
 
                 var builder = new StringBuilder();
                 var parameter = (new ExpandoObject()) as IDictionary<string, Object>;
 
                 for (var i = 0; i < tuples.Count(); i++)
                 {
-                    if (useTags)
-                    {
-                        builder.Append($"(@Address{i}, @Tag{i}),");
-                        parameter.Add($"Address{i}", tuples[i].Address);
-                        parameter.Add($"Tag{i}", tuples[i].Tag);
-                    }
-                    else
-                    {
-                        builder.Append($"(@Address{i}),");
-                        parameter.Add($"Address{i}", tuples[i].Address);
-                    }
+                    //if (useTags)
+                    //{
+                    builder.Append($"(@Address{i}, @Tag{i}),");
+                    parameter.Add($"Address{i}", tuples[i].Address);
+                    parameter.Add($"Tag{i}", tuples[i].Tag);
+                    //}
+                    //else
+                    //{
+                    //    builder.Append($"(@Address{i}),");
+                    //    parameter.Add($"Address{i}", tuples[i].Address);
+                    //}
                 }
 
                 builder.Remove(builder.Length - 1, 1);
 
                 string assignQuery;
 
-                if (useTags)
-                {
-                    assignQuery = $@"SELECT * FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} 
+                //if (useTags)
+                //{
+                assignQuery = $@"SELECT * FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} 
                                   WHERE (""{nameof(UserAddressEntity.AddressLowerCase)}"", ""{nameof(UserAddressEntity.Tag)}"") in ({builder})";
-                }
-                else
-                {
-                    assignQuery = $@"SELECT * FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} 
-                                  WHERE (""{nameof(UserAddressEntity.AddressLowerCase)}"") in ({builder})";
-                }
-                
+                //}
+                //else
+                //{
+                //    assignQuery = $@"SELECT * FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} 
+                //                  WHERE (""{nameof(UserAddressEntity.AddressLowerCase)}"") in ({builder})";
+                //}
+
                 await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
                 var addressEntities = await context.Database.GetDbConnection()
                         .QueryAsync<UserAddressEntity>(assignQuery, (object)parameter);

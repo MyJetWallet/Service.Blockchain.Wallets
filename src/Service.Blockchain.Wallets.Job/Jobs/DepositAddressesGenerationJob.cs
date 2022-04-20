@@ -243,7 +243,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                                             Integration = Domain.Models.BlockchainIntegration.Fireblocks,
                                             IsActive = true,
                                             Status = Domain.Models.AddressStatus.New,
-                                            Tag = vaultAddress.VaultAddress.Tag
+                                            Tag = vaultAddress.VaultAddress.Tag ?? string.Empty,
                                         };
 
                                         await context.VaultAddresses.Upsert(addressEntity).RunAsync();
@@ -328,7 +328,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                                             Integration = Domain.Models.BlockchainIntegration.Fireblocks,
                                             IsActive = true,
                                             Status = Domain.Models.AddressStatus.New,
-                                            Tag = vaultAddress.Tag
+                                            Tag = vaultAddress.Tag ?? string.Empty,
                                         };
 
                                         await using var transaction = context.Database.BeginTransaction();

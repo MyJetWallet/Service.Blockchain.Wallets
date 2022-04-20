@@ -23,18 +23,37 @@ namespace Service.Blockchain.Wallets.MyNoSql.Addresses
 
         public VaultAddress Address { get; set; }
 
-        public static VaultAddressNoSql Create(string userId, string assetSymbol, string assetNetwork, VaultAddress vaultAddress)
+        public string ClientId { get; set; }
+        public string BrokerId { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string SigningKeyId { get; set; }
+        public string Signature { get; set; }
+
+        public static VaultAddressNoSql Create(
+            string userId, 
+            string assetSymbol, 
+            string assetNetwork, 
+            VaultAddress vaultAddress,
+            string clientId,
+            string brokerId,
+            DateTime createdAt,
+            string signingKeyId,
+            string signature)
         {
             return new VaultAddressNoSql()
             {
+                ClientId = clientId,
+                BrokerId = brokerId,
+                CreatedAt = createdAt,
                 PartitionKey = GeneratePartitionKey(userId),
                 RowKey = GenerateRowKey(assetSymbol, assetNetwork),
                 AssetSymbol = assetSymbol,
                 AssetNetwork = assetNetwork,
                 WalletId = userId,
-                Address = vaultAddress
+                Address = vaultAddress,
+                SigningKeyId = signingKeyId,
+                Signature = signature
             };
         }
-
     }
 }

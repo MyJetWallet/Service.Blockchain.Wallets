@@ -35,7 +35,12 @@ namespace Service.Blockchain.Wallets.Client
                     AssetId = cache.AssetSymbol,
                     AssetNetworkId = cache.AssetNetwork,
                     UserId = cache.WalletId,
-                    VaultAddress = cache.Address
+                    VaultAddress = cache.Address,
+                    SigningKeyId = cache.SigningKeyId,
+                    Signature= cache.Signature,
+                    BrokerId = cache.BrokerId,
+                    ClientId = cache.ClientId,
+                    CreatedAt = cache.CreatedAt,
                 };
             }
 

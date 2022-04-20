@@ -37,5 +37,8 @@ namespace Service.Blockchain.Wallets.Common.Settings
 
         [YamlProperty("BlockchainWallets.PreGeneratedAddressesCount")]
         public string PreGeneratedAddressesCount { get; set; }
+
+        [YamlProperty("BlockchainWallets.WalletSignaturePrivateApiKeyId")]
+        public string SignaturePrivateApiKeyId { get; set; }
     }
 }
