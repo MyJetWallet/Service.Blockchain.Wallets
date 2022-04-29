@@ -37,30 +37,30 @@ namespace Service.Blockchain.Wallets.Services
         private readonly IMyNoSqlServerDataWriter<VaultAddressNoSql> _addressCache;
         private readonly IMyNoSqlServerDataWriter<AssetMappingNoSql> _assetMappings;
         private readonly IAssetsDictionaryClient _assetsDictionaryClient;
-        private readonly IAssetPaymentSettingsClient _assetPaymentSettingsClient;
         private readonly DbContextOptionsBuilder<DatabaseContext> _dbContextOptionsBuilder;
         private readonly IAsymmetricEncryptionService _asymmetricEncryptionService;
         private readonly IApiKeyStorage _apiKeyStorage;
+        private readonly IPaymentMethodsClient _paymentMethodsClient;
 
         public WalletService(ILogger<WalletService> logger,
             IVaultAccountService vaultAccountService,
             IMyNoSqlServerDataWriter<VaultAddressNoSql> addressCache,
             IMyNoSqlServerDataWriter<AssetMappingNoSql> assetMappings,
             IAssetsDictionaryClient assetsDictionaryClient,
-            IAssetPaymentSettingsClient assetPaymentSettingsClient,
             DbContextOptionsBuilder<DatabaseContext> dbContextOptionsBuilder,
             IAsymmetricEncryptionService asymmetricEncryptionService,
-            IApiKeyStorage apiKeyStorage)
+            IApiKeyStorage apiKeyStorage,
+            IPaymentMethodsClient paymentMethodsClient)
         {
             _logger = logger;
             _vaultAccountService = vaultAccountService;
             _addressCache = addressCache;
             _assetMappings = assetMappings;
             _assetsDictionaryClient = assetsDictionaryClient;
-            _assetPaymentSettingsClient = assetPaymentSettingsClient;
             _dbContextOptionsBuilder = dbContextOptionsBuilder;
             _asymmetricEncryptionService = asymmetricEncryptionService;
             _apiKeyStorage = apiKeyStorage;
+            _paymentMethodsClient = paymentMethodsClient;
         }
 
         public async Task<GetUserWalletResponse> GetUserWalletAsync(GetUserWalletRequest request)
@@ -75,11 +75,6 @@ namespace Service.Blockchain.Wallets.Services
 
             try
             {
-                var paymentSettings = _assetPaymentSettingsClient.GetAssetById(assetIdentity);
-                if (paymentSettings.Circle?.IsEnabledBlockchainDeposit == true &&
-                    paymentSettings.Fireblocks?.IsEnabledDeposit == true)
-                    return GetUserWalletResponse.CreateErrorResponse("There can be only one payment methos for asset.", Grpc.Models.ErrorCode.PaymentIsNotConfigured);
-
                 var asset = _assetsDictionaryClient.GetAssetById(assetIdentity);
 
                 if (asset == null)
@@ -338,17 +333,7 @@ namespace Service.Blockchain.Wallets.Services
 
             try
             {
-                var paymentSettings = _assetPaymentSettingsClient.GetAssetById(assetIdentity);
-                if (paymentSettings.Circle?.IsEnabledBlockchainDeposit == true &&
-                    paymentSettings.Fireblocks?.IsEnabledDeposit == true)
-                    return new ValidateAddressResponse()
-                    {
-                        Error = new Grpc.Models.ErrorResponse
-                        {
-                            Error = "There can be only one payment methos for asset.",
-                            ErrorCode = Grpc.Models.ErrorCode.PaymentIsNotConfigured,
-                        }
-                    };
+                var paymentSettings = _paymentMethodsClient.GetMethodsForAsset(assetIdentity.Symbol);
 
                 var asset = _assetsDictionaryClient.GetAssetById(assetIdentity);
 
@@ -386,7 +371,7 @@ namespace Service.Blockchain.Wallets.Services
                     };
                 }
 
-                if (paymentSettings.Fireblocks?.IsEnabledWithdrawal == true)
+                if (paymentSettings?.Any(x => x.WithdrawalMethods.FireblocksBlockchain) ?? false)
                 {
                     var assetMapping = await _assetMappings.GetAsync(AssetMappingNoSql.GeneratePartitionKey(asset.Symbol),
                         AssetMappingNoSql.GenerateRowKey(request.AssetNetwork));
@@ -416,7 +401,7 @@ namespace Service.Blockchain.Wallets.Services
                         IsInternal = false,
                     };
                 }
-                else if (paymentSettings.Circle?.IsEnabledBlockchainWithdrawal == true)
+                else if (paymentSettings?.Any(x => x.WithdrawalMethods.CircleBlockchain) ?? false)
                 {
                     //TODO:
                     _logger.LogInformation("Can't validate circle address", request.ToJson());

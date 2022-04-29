@@ -29,7 +29,6 @@ namespace Service.Blockchain.Wallets.Job.Jobs
     {
         private readonly ILogger<DepositAddressesGenerationJob> _logger;
         private readonly IAssetsDictionaryClient _assetsDictionaryClient;
-        private readonly IAssetPaymentSettingsClient _assetPaymentSettingsClient;
         private readonly ICircleAssetSettingsService _circleAssetSettingsService;
         private readonly ICircleBlockchainMapper _blockchainMapper;
         private readonly ICircleDepositAddressService _circleDepositAddressService;
@@ -42,7 +41,6 @@ namespace Service.Blockchain.Wallets.Job.Jobs
         public DepositAddressesGenerationJob(
             ILogger<DepositAddressesGenerationJob> logger,
             IAssetsDictionaryClient assetsDictionaryClient,
-            IAssetPaymentSettingsClient assetPaymentSettingsClient,
             ICircleAssetSettingsService circleAssetSettingsService,
             ICircleBlockchainMapper blockchainMapper,
             ICircleDepositAddressService circleDepositAddressService,
@@ -53,7 +51,6 @@ namespace Service.Blockchain.Wallets.Job.Jobs
         {
             _logger = logger;
             _assetsDictionaryClient = assetsDictionaryClient;
-            _assetPaymentSettingsClient = assetPaymentSettingsClient;
             _circleAssetSettingsService = circleAssetSettingsService;
             _blockchainMapper = blockchainMapper;
             _circleDepositAddressService = circleDepositAddressService;
@@ -101,10 +98,6 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                     BrokerId = circleAsset.BrokerId,
                     Symbol = circleAsset.AssetSymbol
                 };
-
-                var paymentSettings = _assetPaymentSettingsClient.GetAssetById(assetIdentity);
-                if (paymentSettings?.Circle?.IsEnabledBlockchainDeposit != true)
-                    continue;
 
                 var asset = _assetsDictionaryClient.GetAssetById(assetIdentity);
 
@@ -183,10 +176,6 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                     BrokerId = MyJetWallet.Domain.DomainConstants.DefaultBroker,
                     Symbol = fireblockAsset.AssetMapping.AssetId
                 };
-
-                var paymentSettings = _assetPaymentSettingsClient.GetAssetById(assetIdentity);
-                if (paymentSettings?.Fireblocks?.IsEnabledDeposit != true)
-                    continue;
 
                 var asset = _assetsDictionaryClient.GetAssetById(assetIdentity);
 
