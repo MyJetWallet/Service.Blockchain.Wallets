@@ -18,7 +18,7 @@ namespace Service.Blockchain.Wallets.Modules
         protected override void Load(ContainerBuilder builder)
         {
             builder.RegisterEncryptionServiceClient();
-            var myNoSqlClient = builder.CreateNoSqlClient(Program.ReloadedSettings(e => e.MyNoSqlReaderHostPort));
+            var myNoSqlClient = builder.CreateNoSqlClient(Program.Settings.MyNoSqlReaderHostPort, Program.LogFactory);
             builder.RegisterFireblocksApiClient(Program.Settings.FireblocksApiUrl);
             builder.RegisterMyNoSqlWriter<AssetMappingNoSql>(() => Program.Settings.MyNoSqlWriterUrl, AssetMappingNoSql.TableName);
             builder.RegisterMyNoSqlWriter<VaultAddressNoSql>(() => Program.Settings.MyNoSqlWriterUrl, VaultAddressNoSql.TableName);
