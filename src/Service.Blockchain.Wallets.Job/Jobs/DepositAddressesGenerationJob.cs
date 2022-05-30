@@ -90,7 +90,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
             //        .QueryAsync<AdressWalletGrouping>(getCountQuery);
 
             var walletCountDict = aggregatedWalletCount.ToDictionary(x => (x.AssetSymbol, x.AssetNetwork), y => y.WalletCount);
-
+            
             foreach (var circleAsset in circleAssets)
             {
                 var assetIdentity = new AssetIdentity
@@ -98,21 +98,21 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                     BrokerId = circleAsset.BrokerId,
                     Symbol = circleAsset.AssetSymbol
                 };
-
+            
                 var asset = _assetsDictionaryClient.GetAssetById(assetIdentity);
-
+            
                 if (asset == null || !asset.IsEnabled)
                     continue;
-
+            
                 foreach (var blockchain in asset.DepositBlockchains)
                 {
                     var circleBlockchain =
                         _blockchainMapper.BlockchainToCircleBlockchain(asset.BrokerId, blockchain);
                     if (circleBlockchain == null)
                         continue;
-
+            
                     walletCountDict.TryGetValue((asset.Symbol, blockchain), out var entitiesCount);
-
+            
                     if (entitiesCount < maxCount)
                     {
                         for (var i = 1; i <= maxCount - entitiesCount; i++)
@@ -128,7 +128,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                                         Asset = asset.Symbol,
                                         Blockchain = blockchain
                                     });
-
+            
                                 if (!response.IsSuccess)
                                 {
                                     _logger.LogError(
@@ -137,7 +137,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                                         response.ErrorMessage);
                                     continue;
                                 }
-
+            
                                 var addressEntity = new UserAddressEntity
                                 {
                                     BrokerId = asset.BrokerId,
@@ -159,7 +159,7 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                                     "Unable to pre-generate address for broker {broker}, asset {asset}, wallet id {walletId}, blockchain {blockchain}",
                                     asset.BrokerId, asset.Symbol, circleAsset.CircleWalletId, blockchain);
                             }
-
+            
                         _logger.LogInformation(
                             "Pre-generated {count} addresses for broker {broker}, asset {asset}, wallet id {walletId}, blockchain {blockchain}",
                             maxCount - entitiesCount, asset.BrokerId, asset.Symbol, circleAsset.CircleWalletId,
@@ -174,13 +174,16 @@ namespace Service.Blockchain.Wallets.Job.Jobs
                 var assetIdentity = new AssetIdentity
                 {
                     BrokerId = MyJetWallet.Domain.DomainConstants.DefaultBroker,
-                    Symbol = fireblockAsset.AssetMapping.AssetId
+                    Symbol = fireblockAsset.AssetMapping.AssetId.Trim()
                 };
 
                 var asset = _assetsDictionaryClient.GetAssetById(assetIdentity);
 
                 if (asset == null || !asset.IsEnabled)
+                {
+                    _logger.LogError("Asset is missing. Identity: {identity}", assetIdentity.ToJson());
                     continue;
+                }
 
                 var blockchain = fireblockAsset.AssetMapping.NetworkId;
                 walletCountDict.TryGetValue((asset.Symbol, blockchain), out var entitiesCount);
