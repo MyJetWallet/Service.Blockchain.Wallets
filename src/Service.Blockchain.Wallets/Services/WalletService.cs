@@ -263,33 +263,17 @@ namespace Service.Blockchain.Wallets.Services
 
                 for (var i = 0; i < tuples.Count(); i++)
                 {
-                    //if (useTags)
-                    //{
                     builder.Append($"(@Address{i}, @Tag{i}),");
                     parameter.Add($"Address{i}", tuples[i].Address);
                     parameter.Add($"Tag{i}", tuples[i].Tag);
-                    //}
-                    //else
-                    //{
-                    //    builder.Append($"(@Address{i}),");
-                    //    parameter.Add($"Address{i}", tuples[i].Address);
-                    //}
                 }
 
                 builder.Remove(builder.Length - 1, 1);
 
                 string assignQuery;
 
-                //if (useTags)
-                //{
                 assignQuery = $@"SELECT * FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} 
                                   WHERE (""{nameof(UserAddressEntity.AddressLowerCase)}"", ""{nameof(UserAddressEntity.Tag)}"") in ({builder})";
-                //}
-                //else
-                //{
-                //    assignQuery = $@"SELECT * FROM ""{DatabaseContext.Schema}"".{DatabaseContext.AddressesTableName} 
-                //                  WHERE (""{nameof(UserAddressEntity.AddressLowerCase)}"") in ({builder})";
-                //}
 
                 await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
                 var addressEntities = await context.Database.GetDbConnection()
@@ -303,7 +287,9 @@ namespace Service.Blockchain.Wallets.Services
                         BrokerId = x.BrokerId,
                         ClientId = x.ClientId,
                         Tag = x.Tag,
-                        WalletId = x.WalletId
+                        WalletId = x.WalletId,
+                        AssetSymbol = x.AssetSymbol,
+                        AssetNetwork = x.AssetNetwork
                     }).ToArray(),
                 };
             }

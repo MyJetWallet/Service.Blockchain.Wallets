@@ -28,6 +28,12 @@ namespace Service.Blockchain.Wallets.Grpc.Models.UserWallets
 
             [DataMember(Order = 6)]
             public string ClientId { get; set; }
+
+            [DataMember(Order = 7)]
+            public string AssetSymbol { get; set; }
+
+            [DataMember(Order = 8)]
+            public string AssetNetwork { get; set; }
         }
     }
 }
